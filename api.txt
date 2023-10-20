@@ -1,0 +1,6 @@
+!pip install roboflow
+
+from roboflow import Roboflow
+rf = Roboflow(api_key="XiFLAxVFBEtsmj3HAVRO")
+project = rf.workspace("dropshop-jhqja").project("droplet-detection-bfm8d")
+dataset = project.version(4).download("yolov8")
