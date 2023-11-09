@@ -23,12 +23,19 @@ root = tk.Tk()
 root.title('Bounding box creation: Please Select bounding boxes')
 
 
-
+"""
+    sets the direction of the bounding box
+    Updates the text for the TK inter menu 
+"""
 def set_direction(value):
     global direction
     direction = value
     direction_label.config(text=f"Selected Direction: {direction}")
 
+"""
+    Toggle function that changes if the current bounding box is a 'straight' or 'curve'
+    Updates the text for the TK inter menu 
+"""
 def toggle_value():
     # 1 == straight, -1 curve
     global value
@@ -37,6 +44,9 @@ def toggle_value():
     if value != 1: typeVal = "Curve"
     bounding_label.config(text=f"Bounding Box Type: {typeVal}")
 
+"""
+    Toggle function that changes if the user is creating or deleting bounding box
+"""
 def toggle_delete():
     global delete_mode
     delete_mode = -delete_mode
@@ -83,10 +93,6 @@ def open_file():
         direction_menu.add_command(label="Toggle Type", command=toggle_value)
         direction_menu.add_command(label="Toggle Mode", command=toggle_delete)
 
-
-
-
-
         global direction_label, bounding_label, delete_label
         delete_label = tk.Label(root, text=f"Mode: Create ", padx=10, pady=10)
         delete_label.pack()
@@ -104,6 +110,7 @@ def open_file():
 
     # run video after bounding box creation
 
+    # TODO
     """
     TODO: Idea ---> Open a single frame to save the bounding box data, when the window is closed open a another window 
     that will loop the video frames with the bounding block or will watch the video and add the frames to each video
@@ -111,9 +118,6 @@ def open_file():
     could have prior TODO redundant 
     """
 
-
-
-# TODO: condition to append functions for straights and curves
 def draw_box(event, x, y, flags, param):
     global bounding_num, frame_copy
     # flags are
@@ -123,7 +127,6 @@ def draw_box(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
             delete = False
             for i, box in enumerate(bounding_boxes): # this is deletes the object from the bounding box list
-                # TODO also delete in copy, might need to draw on original
                 # maybe save the ones created on the actual frame, delete what was created on the frame copy
                 x1, y1 = box[3][0][0], box[3][0][1]
                 x2, y2 = box[3][1][0], box[3][1][1]
@@ -151,7 +154,6 @@ def draw_box(event, x, y, flags, param):
                     cv2.circle(frame_copy, ((ix + x) // 2, (iy + y) // 2), 2, (0, 0, 255), -1)  # Add a red dot at the center
                 cv2.imshow('First Frame', frame_copy)
                 # cv2.imshow('First Frame', )
-                # TODO make it so there is
         elif event == cv2.EVENT_LBUTTONUP:
             drawing = False
             frame_copy = np.zeros_like(frame)  # Create an empty frame
@@ -170,12 +172,10 @@ def draw_box(event, x, y, flags, param):
             print("Straight bounds {b} created at {d} in direction {c}".format(b=bounding_boxes[-1][0], d=(bounding_boxes[-1][3][0], bounding_boxes[-1][3][1]), c=bounding_boxes[-1][2]))
             cv2.imshow('First Frame', frame_with_boxes)
 
-def end_create():
-    # TODO get the program to end with tkinter interface
-    global createBox
-    createBox = False
-    run_video()
-
+"""
+    Function to run the video with the bounding boxes in place  
+"""
+# TODO include label later
 def run_video():
     global cap, bounding_boxes
     while cap.isOpened():
@@ -201,13 +201,9 @@ def run_video():
 select_button = tk.Button(root, text="Select Video File", command=open_file)
 select_button.pack()
 
-# TODO fix or redo
-# run after bounding box creation
-# refer to :func: end_create for functionality
-process_button = tk.Button(root, text="Process video with Bounding Boxes", command=end_create)
+process_button = tk.Button(root, text="Process video with Bounding Boxes", command=run_video)
 process_button.pack()
 
-# cv2.namedWindow('First Frame')
 
 # tk inter main loop
 root.mainloop()
