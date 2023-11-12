@@ -213,10 +213,7 @@ def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) 
 def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int), found: set) -> Droplet:
     closest = float('inf')
     closest_drop = None
-    for drop in drops_to_consider:
-        if drop in found:
-            print("Skipping")
-            continue
+    for drop in drops_to_consider.difference(found):
         drop_point = (drop.x, drop.y)
         distance = get_distance(drop_point, mid) 
         if distance < closest:
@@ -237,9 +234,14 @@ def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
         drop.update_position(map_course)
         found.add(drop)
 
+def print_path_segments(course: Path, t: int) -> None:
+    '''Debug Function that prints T frames and segment the droplets in each segment and shows them updating'''
+    print(t)
+    for segment in course.segments_in_order:
+        print([drop.id for drop in segment.queue])
+    print("\n")
+
 def main():
-    #the moment the closest droplet's .current_section 
-    #is different from the course from x_y_map update sections first then do calcs
     all_droplets = set()
     course = build_course()
     x_y_map = build_x_y_map(course)
@@ -252,7 +254,7 @@ def main():
     
     t = 0
     droplets_on_screen = 0
-    while t < 300: 
+    while t < 400: 
             t += 1
 
             ret, frame = video_cap.read()
@@ -278,8 +280,8 @@ def main():
 
                         if x_y_map[mid] != course.segments_in_order[closest_droplet.current_section]:
                             closest_droplet.update_section(course, closest_droplet)
-                            print("New Closest Droplet Section: ")
-                            print(closest_droplet.current_section)
+                        
+                        print_path_segments(course, t)
                         box_drops(all_droplets, frame)
 
                         if confidence:
