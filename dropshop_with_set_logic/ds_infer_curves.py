@@ -31,6 +31,7 @@ class Droplet():
         self.trajectory = trajectory
         self.current_section = current_section
         self.last_detection = None
+        self.curve_speed = trajectory
 
     def update_position(self, course: Path) -> (int, int):
         '''Update a droplets position using the assumption of what direction it's traveling in from it's corresponding course.
@@ -44,7 +45,7 @@ class Droplet():
             self.x += (self.trajectory * direction_x)
             self.y += (self.trajectory * direction_y)
         else:
-            self.x += (0.3 * direction_x) #Note this trajectory is hard coded for the curve will have to address this
+            self.x += (self.curve_speed * direction_x) #Note this trajectory is hard coded for the curve will have to address this
             self.y = segment.predict_y(self.x)
 
         return (self.x, self.y)
@@ -65,28 +66,46 @@ class Droplet():
                 if self.current_section + 1 < len(course.segments_in_order):
                     course.segments_in_order[self.current_section + 1].add_droplet(droplet)
     
-    def update_last_seen(self, mid : (int, int), t : int, x_y_map: {(int, int): Path}) -> None:
+    def update_last_seen(self, mid : (int, int), t : int, x_y_map: {(int, int): Path}, speed_threshold : int) -> None:
         '''In Progress 11/13/2023 1:07 AM Something with this is breaking occassionally will have to see what
         This function initially intended to calculate trajectory over averages if a Droplet was detected. This then updates over
         the difference between its last difference in straights. The trajectory for curves needs to be decided still.
+
+        In Progress Update 11/18/2023 / 1:19 AM Unbounded Local Error occurring in Straight Instance conditional. Other than that includes
+        dynamically updating speed given provided thresholds for both straights and curves.
         '''
         self.x = mid[0]
         self.y = mid[1]
+
         if not self.last_detection:
             self.last_detection = (mid, t)
             return
         else:
             if isinstance(x_y_map[mid], Straight):
-                last_x, curr_x, last_t = self.last_detection[0][0], mid[0], self.last_detection[1]
-                new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
-                if new_trajectory:
-                    self.trajectory = new_trajectory
-                self.last_detection = (mid, t)
-                # print("Droplet ID: " + str(self.id) + " New trajectory: " + str(self.trajectory))
-            # else:
-            #     #WILL PROBABLY HAVE TO UPDATE THE TRAJECTORY TO BE THE AVERAGE OF A NEIGHBORING SEGMENT OR AL LDROPLETS
-            #     current_curve = x_y_map[mid]
-            #     print(current_curve.predict_y(mid[0]))
+                try:
+                    last_x, curr_x, last_t = self.last_detection[0][0], mid[0], self.last_detection[1]
+                    if t != last_t:
+                        new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
+                    if new_trajectory and new_trajectory <= speed_threshold:
+                        self.trajectory = new_trajectory
+                except UnboundLocalError:
+                    print("Happend in Straight")
+            else:
+                try:
+                    current_curve = x_y_map[mid]
+                    middle_curve_x = current_curve.mid[0]
+                    start_x, end_x = current_curve.start[0], current_curve.end[0]
+                    total_length = abs((start_x - end_x))
+                    proximity_to_center = abs(middle_curve_x - self.x)
+                    if proximity_to_center/total_length * self.curve_speed >= 0.3: #Can change this 0.5 to a threshold
+                        self.curve_speed *= proximity_to_center/total_length 
+                        print("New Curve Trajectory: ", self.curve_speed)
+                except UnboundLocalError:
+                    print("Happend in Curve")
+            self.last_detection = (mid, t)
+                
+    
+        
             
 class Straight():
     def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
@@ -290,12 +309,12 @@ def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) 
     else:
         return num_droplets
 
-def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int), found: set) -> Droplet:
+def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int)) -> Droplet:
     '''Find the closest droplet to a given (x, y) coordinate provided from a detection. If the droplet was associated already in this round
     skip to save computations'''
     closest = float('inf')
     closest_drop = None
-    for drop in drops_to_consider.difference(found):
+    for drop in drops_to_consider:
         drop_point = (drop.x, drop.y)
         distance = get_distance(drop_point, mid) 
         if distance < closest:
@@ -316,18 +335,12 @@ def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
         drop.update_position(map_course)
         found.add(drop)
 
-def print_path_segments(course: Path, t: int) -> None:
-    '''Debug Function that prints T frames and segment the droplets in each segment and shows them updating'''
-    print(t)
-    for segment in course.segments_in_order:
-        print([drop.id for drop in segment.queue])
-    print("\n")
-
 def main():
     all_droplets = set()
     course = build_course()
     x_y_map = build_x_y_map(course)
     box = sv.BoxAnnotator(text_scale=0.3)
+    speed_threshold = 5
     model, video_cap = load_mac_files()
 
     if not video_cap.isOpened():
@@ -354,12 +367,26 @@ def main():
                     for data in result.boxes.data.tolist():
                         xone, yone, xtwo, ytwo, _, confidence, _ = data
                         mid = get_mid_point(xone, yone, xtwo, ytwo)
-                        drops_to_consider = x_y_map[mid].queue
-                        closest_droplet = find_closest_droplet(drops_to_consider, mid, found)
+                        try:
+                            drops_to_consider = x_y_map[mid].queue
+                        except KeyError:
+                            '''A Key Error occurs when a detection happens outside of the Course in space that should not be considered.
+                            Will skip any computation for consideration and flag the false detection. Should be a True False occurrence
+                            '''
+                            print("Data: ", data)
+                            continue
+                        except Exception as e:
+                            exc_type, exc_obj, exc_tb = sys.exc_info()
+                            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                            print("Detection found outside of the Course.")
+                            print(exc_type, fname, exc_tb.tb_lineno)
+                            continue
+
+                        closest_droplet = find_closest_droplet(drops_to_consider, mid)
                         numbers_detected += 1
                         found.add(closest_droplet)
 
-                        closest_droplet.update_last_seen(mid, t, x_y_map)
+                        closest_droplet.update_last_seen(mid, t, x_y_map, speed_threshold)
                         # closest_droplet.update_position(course)
 
                         if x_y_map[mid] != course.segments_in_order[closest_droplet.current_section]:
