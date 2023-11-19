@@ -43,7 +43,9 @@ class Droplet():
         direction_x, direction_y = segment.direction
         if isinstance(segment, Straight):
             self.x += (self.trajectory * direction_x)
-            self.y += (self.trajectory * direction_y)
+            #slope = (segment.top_left[1] - segment.top_right[1])/(segment.top_right[0] - segment.top_left[0]) #ideally most  cases slope is 0
+            slope = 0 #When Interface is Integrated replace this with above ^^^
+            self.y += slope
         else:
             self.x += (self.curve_speed * direction_x) #Note this trajectory is hard coded for the curve will have to address this
             self.y = segment.predict_y(self.x)
@@ -115,6 +117,7 @@ class Straight():
         self.bottom_right = point2
         self.direction = direction
         self.queue = set()
+        #self.top_right = (460, 45) # Will have to be a passed in argumnet once Interfacce is integrated adding for now to test
 
     def add_droplet(self, droplet: Droplet) -> None:
         '''Add a droplet to the queue'''
@@ -387,8 +390,10 @@ def main():
                         numbers_detected += 1
                         found.add(closest_droplet)
 
+                        '''Toggle these  two comments to test with or without detections'''
                         closest_droplet.update_last_seen(mid, t, x_y_map, speed_threshold)
                         # closest_droplet.update_position(course)
+                        '''-------------------------------------------------------------'''
 
                         if x_y_map[mid] != course.segments_in_order[closest_droplet.current_section]:
                             closest_droplet.update_section(course, closest_droplet)
