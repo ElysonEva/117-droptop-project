@@ -82,14 +82,15 @@ class Droplet():
             return
         else:
             if isinstance(x_y_map[mid], Straight):
-                try:
-                    last_x, curr_x, last_t = self.last_detection[0][0], mid[0], self.last_detection[1]
-                    if t != last_t:
-                        new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
-                    if new_trajectory and new_trajectory <= speed_threshold:
-                        self.trajectory = new_trajectory
-                except UnboundLocalError:
-                    print("Happend in Straight")
+                last_x, curr_x, last_t = self.last_detection[0][0], mid[0], self.last_detection[1]
+                if t != last_t:
+                    new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
+                    try:
+                        if new_trajectory and new_trajectory <= speed_threshold:
+                            self.trajectory = new_trajectory
+                    except UnboundLocalError:
+                        print("Happend in update Trajectory")
+
             else:
                 try:
                     current_curve = x_y_map[mid]
