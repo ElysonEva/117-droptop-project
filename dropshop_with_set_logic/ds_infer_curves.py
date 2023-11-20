@@ -21,6 +21,7 @@ class Path():
         if length > 1 and droplet.current_section + 1 < length:
             self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
         self.segments_in_order[droplet.current_section].add_droplet(droplet)
+        print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
 
 class Droplet():
     def __init__(self, id, x: int = None, y:int = None, trajectory: int = 1, current_section: int = 0) -> None:
@@ -38,30 +39,44 @@ class Droplet():
         If the droplet is in a Straight then the case is update the direction depending on a flat trajectory. 
         If it's on a curve then use the assumption we know the start, middle, and end point. Calculate the Coefficients of a Quadratic Equation given three points.
         This assumes that all curves are Quadratic in nature and has a start, middle, end. More information for the quadratic process is in the coming functions
+        
+        11/18/2023:
+        self.curve speed should be dynamically changed, initialize at initial droplet trajectory.
+        When Interface is Integrated replace the commented slope variable
+        In concept Direction y shouldn't matter because slope is calculated from top left and top right
+        where left < right and will divide into
+        Will be accordingly negative or positive.
+        May have a Zero Division Error if a Segment box is ever one pixel which should never happen. But if that ever wanted to be handled, it can be done
+        by adding a conditional if segment.top_left[0] != segment.top_right[0] 
         '''
         segment = course.segments_in_order[self.current_section]
         direction_x, direction_y = segment.direction
         if isinstance(segment, Straight):
             self.x += (self.trajectory * direction_x)
-            #slope = (segment.top_left[1] - segment.top_right[1])/(segment.top_right[0] - segment.top_left[0]) #ideally most  cases slope is 0
-            slope = 0 #When Interface is Integrated replace this with above ^^^
+            #slope = (segment.top_left[1] - segment.top_right[1])/(segment.top_left[0] - segment.top_right[0]) #ideally most  cases slope is 0
+            slope = 0 
             self.y += slope
         else:
-            self.x += (self.curve_speed * direction_x) #Note this trajectory is hard coded for the curve will have to address this
+
+            self.x += (self.curve_speed * direction_x)
             self.y = segment.predict_y(self.x)
 
         return (self.x, self.y)
     
     def update_section(self, course: Path, droplet) -> None:
         '''Update which section of the course the droplet is in. 
-        In more detailed generate the constraints in which the coordinate has to be in using the corners of a bounding box. if outside the bounding box
-        we can infer that the droplet moved over to the next section. Remove the droplet from the old section. Add it to the new one and carry it over to the one after the new one
-        We do this in order to carry over Droplet data with set logic without running into the error of having calculated too early or too late given the nature in variability of the size of the segments.
+        In more detail. It generates the constraints in which the coordinate has to be in using the corners of a bounding box. If the detection is
+        outside the bounding box we can infer that the droplet moved over to the next section/segment. 
+        In this case we remove the droplet from the old section and add it to the new one then carry it over to the one after the new one.
+        We do this in order to carry over Droplet data with set logic without running into the error of having 
+        calculated too early or too late given the nature in variability of the size of the segments.
         '''
         segment = course.segments_in_order[self.current_section]
         left, right, top, bot = segment.top_left[0], segment.bottom_right[0], segment.top_left[1], segment.bottom_right[1]
         if self.x < left or self.x > right or self.y < top or self.y > bot:
             if self.current_section < len(course.segments_in_order):
+
+                #Error Probably Occurring Here
                 course.segments_in_order[self.current_section].remove_droplet(droplet)
                 self.current_section += 1
                 course.segments_in_order[self.current_section].add_droplet(droplet)
@@ -73,8 +88,18 @@ class Droplet():
         This function initially intended to calculate trajectory over averages if a Droplet was detected. This then updates over
         the difference between its last difference in straights. The trajectory for curves needs to be decided still.
 
-        In Progress Update 11/18/2023 / 1:19 AM Unbounded Local Error occurring in Straight Instance conditional. Other than that includes
-        dynamically updating speed given provided thresholds for both straights and curves.
+        In Progress Update 11/18/2023 / 8:14 Pm 
+        Includes dynamically updating speed based on averages and width of the curves
+        Uses width of the curves because the width of the curve projects where it will be in the Y axis. If the curve is narrow and the increments of X
+        are too big you'll exit the curve quickly. If it's too wide and increments of X too small then the droplet will move slowly across the curve
+        Assumes user passed in thresholds for both straights and curves.
+
+        For a straight the new_trajectory is the average distance traversed over the two detections based on time t
+
+        For a Curve thee average speed is determined by the proximity of center the detection occurred at divided by the total length. 
+        Multiplied by the current curve speed and will be updated as long as it's bigger than a threshold. This way it never reaches a too slow of an amount
+
+        #May have to an include an instance of resetting curve speed
         '''
         self.x = mid[0]
         self.y = mid[1]
@@ -85,31 +110,21 @@ class Droplet():
         else:
             if isinstance(x_y_map[mid], Straight):
                 last_x, curr_x, last_t = self.last_detection[0][0], mid[0], self.last_detection[1]
-                if t != last_t:
+                if t != last_t: #This line prevents Zero Division Error
                     new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
-                    try:
-                        if new_trajectory and new_trajectory <= speed_threshold:
-                            self.trajectory = new_trajectory
-                    except UnboundLocalError:
-                        print("Happend in update Trajectory")
+                    if new_trajectory and new_trajectory <= speed_threshold:
+                        self.trajectory = new_trajectory
 
             else:
-                try:
-                    current_curve = x_y_map[mid]
-                    middle_curve_x = current_curve.mid[0]
-                    start_x, end_x = current_curve.start[0], current_curve.end[0]
-                    total_length = abs((start_x - end_x))
-                    proximity_to_center = abs(middle_curve_x - self.x)
-                    if proximity_to_center/total_length * self.curve_speed >= 0.3: #Can change this 0.5 to a threshold
-                        self.curve_speed *= proximity_to_center/total_length 
-                        print("New Curve Trajectory: ", self.curve_speed)
-                except UnboundLocalError:
-                    print("Happend in Curve")
+                current_curve = x_y_map[mid]
+                middle_curve_x = current_curve.mid[0]
+                start_x, end_x = current_curve.start[0], current_curve.end[0]
+                total_length = abs((start_x - end_x))
+                proximity_to_center = abs(middle_curve_x - self.x)
+                if proximity_to_center/total_length * self.curve_speed >= 0.3: 
+                    self.curve_speed *= proximity_to_center/total_length 
             self.last_detection = (mid, t)
-                
-    
-        
-            
+                          
 class Straight():
     def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
         '''Initialize a straight Box and it's direction'''
@@ -117,13 +132,14 @@ class Straight():
         self.bottom_right = point2
         self.direction = direction
         self.queue = set()
-        #self.top_right = (460, 45) # Will have to be a passed in argumnet once Interfacce is integrated adding for now to test
+        #self.top_right = (460, 45) # Will have to be a passed in argument once Interface is integrated
 
     def add_droplet(self, droplet: Droplet) -> None:
         '''Add a droplet to the queue'''
         self.queue.add(droplet)
     
     def remove_droplet(self, droplet: Droplet) -> None:
+        '''Removes a droplet from this segments queue'''
         self.queue.remove(droplet)
         
 class Curve():
@@ -182,7 +198,6 @@ class Curve():
         a, b, c = self.quadratic_coef
         return a * (x ** 2) + b * x + c
     
-
 def load_mac_files():
     '''Loads the proper files for Mac'''
     model = YOLO("runs/detect/train10/weights/best.pt")
@@ -191,7 +206,10 @@ def load_mac_files():
 
 def build_course() -> Path:
     '''This builds the Path object assuming I know the course before hand. Add the segments to the course's queue
-    For curves add the start, middle, end points'''
+    For curves add the start, middle, end points
+    
+    11/18/2023 This function should be replaced by the interface by drawing out the course
+    '''
     course = Path()
 
     straight1 = Straight((75, 50), (460, 70), (-1, 0)) #Left
@@ -208,12 +226,95 @@ def build_course() -> Path:
     curve2.add_sme((50, 160), (70, 190), (100, 195))
     course.add_segment(curve2)
 
-    straight3 = Straight((100, 180), (530, 205), (1, 0))
+    straight3 = Straight((100, 180), (560, 205), (1, 0))
     course.add_segment(straight3)
+
+    curve3 = Curve((560, 180), (600, 220), (1, 1)) #Right Down
+    curve3.add_sme((560, 193), (580, 200), (590, 220))
+    course.add_segment(curve3)
+
+    straight4 = Straight((580, 220), (600, 300), (0, 1)) #Down
+    course.add_segment(straight4)
+
+    curve4 = Curve((560, 300), (600, 340), (-1, 1)) #Left Down
+    curve4.add_sme((590, 300), (580, 322), (560, 330))
+    course.add_segment(curve4)
+
+    straight5 = Straight((560, 320), (0, 340), (-1, 0))
+    course.add_segment(straight5)
     return course
 
+def label_course(frame) -> None:
+    '''Draws bounding boxes on Curves for now this is assumed given. 
+    This function is just to be used to help visualize the backend can be removed.
+    '''
+    cv2.rectangle(frame, (75, 50), (460, 70), (0, 255, 0), 2)       #First Straight
+    cv2.rectangle(frame, (25, 50), (75, 110), (0, 200, 0), 2)       #First Curve
+
+    cv2.rectangle(frame, (45, 110), (60, 160), (0, 255, 0), 2)      #Second Straight
+    cv2.rectangle(frame, (40, 160), (100, 205), (0, 200, 0), 2)     #Second Curve
+
+    cv2.rectangle(frame, (100, 180), (560, 205), (0, 255, 0), 2)    #Third Straight
+    cv2.rectangle(frame, (560, 180), (600, 220), (0, 200, 0), 2)    #Third Curve
+
+    cv2.rectangle(frame, (580, 220), (600, 300), (0, 255, 0), 2)    #Fourth Straight
+    cv2.rectangle(frame, (560, 300), (600, 340), (0, 200, 0), 2)    #Fourth Curve
+    
+    cv2.rectangle(frame, (560, 320), (0, 340), (0, 255, 0), 2)      #Final Straight
+
+    # straight4 = Straight((530, 240), (600,300), (0, 1)) #Down
+    # course.add_segment(straight4)
+
+def label_curves_s_m_e(frame) -> None:
+    '''Draw the bounding Boxes for the curvers and their Start, Middle, End. 
+    Similarly Label Course this can be removed as well and is used
+    to label the start middle and end of curves'''
+    start1_left, start1_right = give_me_a_small_box((75, 60))
+    cv2.rectangle(frame, start1_left, start1_right, (0, 0, 200), 2) #First Curve
+    
+    start1_m_l, start1_m_r = give_me_a_small_box((60, 80))
+    cv2.rectangle(frame, start1_m_l, start1_m_r, (0, 0, 200), 2)
+
+    start1_e_l, start1_e_r = give_me_a_small_box((52, 110))
+    cv2.rectangle(frame, start1_e_l, start1_e_r, (0, 0, 200), 2)
+
+    #---------------------------------------------------------------------------------------------------#
+    start2_left, start2_right = give_me_a_small_box((50, 160))
+    cv2.rectangle(frame, start2_left, start2_right, (0, 0, 200), 2) #Second Curve
+    
+    start2_m_l, start2_m_r = give_me_a_small_box((70, 190))
+    cv2.rectangle(frame, start2_m_l, start2_m_r, (0, 0, 200), 2)
+
+    start2_e_l, start2_e_r = give_me_a_small_box((100, 195))
+    cv2.rectangle(frame, start2_e_l, start2_e_r, (0, 0, 200), 2)
+    #---------------------------------------------------------------------------------------------------#
+    #cv2.rectangle(frame, (560, 180), (600, 240), (0, 200, 0), 2) #Third Curve
+
+    start3_left, start3_right = give_me_a_small_box((560, 193))
+    cv2.rectangle(frame, start3_left, start3_right, (0, 0, 200), 2) #Third Curve
+    
+    start3_m_l, start3_m_r = give_me_a_small_box((580, 200))
+    cv2.rectangle(frame, start3_m_l, start3_m_r, (0, 0, 200), 2)
+
+    start3_e_l, start3_e_r = give_me_a_small_box((590, 220))
+    cv2.rectangle(frame, start3_e_l, start3_e_r, (0, 0, 200), 2)
+
+    #---------------------------------------------------------------------------------------------------#
+    #cv2.rectangle(frame, (540, 300), (600, 350), (0, 200, 0), 2)    #Fourth Curve
+    start4_left, start4_right = give_me_a_small_box((590, 300))
+    cv2.rectangle(frame, start4_left, start4_right, (0, 0, 200), 2)
+    
+    start4_m_l, start4_m_r = give_me_a_small_box((580, 322))
+    cv2.rectangle(frame, start4_m_l, start4_m_r, (0, 0, 200), 2)
+
+    start4_e_l, start4_e_r = give_me_a_small_box((560, 330))
+    cv2.rectangle(frame, start4_e_l, start4_e_r, (0, 0, 200), 2)
+
+
 def build_x_y_map(course: Path) -> {(int, int): Path}:
-    '''Builds a python dictionary that stores every (x, y) coordinate inside a bounding box to map it to a specific queue so we can later check that queue with each detection'''
+    '''Builds a python dictionary that stores every (x, y) coordinate inside a path segment/section
+      to map it to a specific segment so we can later check that queue associated to that segment 
+      with each detection'''
     ret_dic = {}
     for course in course.segments_in_order:
         x1, y1 = course.top_left
@@ -237,34 +338,6 @@ def give_me_a_small_box(point: (int, int)) -> ((int, int), (int, int)):
     '''Creates a small box for open CV to generate a bounding box a round a point'''
     #Open CV doesn't support float objects
     return (int(point[0] - 2), int(point[1] - 2)),(int(point[0] + 2), int(point[1] + 2))
-
-def label_course(frame) -> None:
-    '''Draws bounding boxes on Curves for now this is assumed given'''
-    cv2.rectangle(frame, (75, 50), (460, 70), (0, 255, 0), 2) #First Straight
-    cv2.rectangle(frame, (25, 50), (75, 110), (0, 200, 0), 2) #First Curve
-    cv2.rectangle(frame, (45, 110), (60, 160), (0, 255, 0), 2) #Second Straight from First Curve to Second Curve # First Vertical
-    cv2.rectangle(frame, (40, 160), (100, 205), (0, 200, 0), 2) #Second Curve
-    cv2.rectangle(frame, (100, 180), (530, 205), (0, 255, 0), 2) #Third Straight
-
-def label_curves_s_m_e(frame) -> None:
-    '''Draw the bounding Boxes for the curvers and their Start, Middle, End'''
-    start1_left, start1_right = give_me_a_small_box((75, 60))
-    cv2.rectangle(frame, start1_left, start1_right, (0, 0, 200), 2) #First Curve
-    
-    start1_m_l, start1_m_r = give_me_a_small_box((60, 80))
-    cv2.rectangle(frame, start1_m_l, start1_m_r, (0, 0, 200), 2)
-
-    start1_e_l, start1_e_r = give_me_a_small_box((52, 110))
-    cv2.rectangle(frame, start1_e_l, start1_e_r, (0, 0, 200), 2)
-
-    start2_left, start2_right = give_me_a_small_box((50, 160))
-    cv2.rectangle(frame, start2_left, start2_right, (0, 0, 200), 2) #First Curve
-    
-    start2_m_l, start2_m_r = give_me_a_small_box((70, 190))
-    cv2.rectangle(frame, start2_m_l, start2_m_r, (0, 0, 200), 2)
-
-    start2_e_l, start2_e_r = give_me_a_small_box((100, 195))
-    cv2.rectangle(frame, start2_e_l, start2_e_r, (0, 0, 200), 2)
 
 def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) -> int:
     '''Initializes Droplet objects this is assumed I know it before hand T == Frame they appear in'''
@@ -304,12 +377,12 @@ def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) 
         course.add_droplet_to_queues(droplet_6)
         drops.add(droplet_6)
         return 6
-    # elif t == 250:
-    #     #(449.0, 60.0) 148
-    #     droplet_7 = Droplet(7, 450, 60, 4)
-    #     course.add_droplet_to_queues(droplet_7)
-    #     drops.add(droplet_7)
-    #     return 7
+    elif t == 384:
+        #455, 195, 
+        droplet_7 = Droplet(7, 455, 195, 1, 3)
+        course.add_droplet_to_queues(droplet_7)
+        drops.add(droplet_7)
+        return 7
     else:
         return num_droplets
 
@@ -339,6 +412,13 @@ def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
         drop.update_position(map_course)
         found.add(drop)
 
+def where_droplets_should_start(frame) -> None:
+    '''Draws a bounding box in front of dispenser location'''
+    cv2.rectangle(frame, (445, 55), (455, 65), (255, 0, 0), 2) #Droplet 1, 4, 5, 6
+    cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
+    cv2.rectangle(frame, (450, 190), (460, 200), (255, 0, 0), 2) #Droplet 1, 4, 5, 6 455, 195
+    # cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
+
 def main():
     all_droplets = set()
     course = build_course()
@@ -353,73 +433,79 @@ def main():
     
     t = 0
     droplets_on_screen = 0
-    while t < 350: 
-            t += 1
+    # while t < 500: 
+    while video_cap.isOpened():
+        t += 1
 
-            ret, frame = video_cap.read()
-            if not ret:
-                print("Video ended")
-                break
-    
-            if t > 0:
-                droplets_on_screen = get_droplets_on_screen(t, droplets_on_screen, all_droplets, course)
-                result = model.track(frame, tracker="bytetrack.yaml", persist=True)[0]
-                numbers_detected = 0
-                found = set()
-                labels = []
-                try:
-                    for data in result.boxes.data.tolist():
-                        xone, yone, xtwo, ytwo, _, confidence, _ = data
-                        mid = get_mid_point(xone, yone, xtwo, ytwo)
-                        try:
-                            drops_to_consider = x_y_map[mid].queue
-                        except KeyError:
-                            '''A Key Error occurs when a detection happens outside of the Course in space that should not be considered.
-                            Will skip any computation for consideration and flag the false detection. Should be a True False occurrence
-                            '''
-                            print("Data: ", data)
-                            continue
-                        except Exception as e:
-                            exc_type, exc_obj, exc_tb = sys.exc_info()
-                            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                            print("Detection found outside of the Course.")
-                            print(exc_type, fname, exc_tb.tb_lineno)
-                            continue
+        ret, frame = video_cap.read()
+        if not ret:
+            print("Video ended")
+            break
 
-                        closest_droplet = find_closest_droplet(drops_to_consider, mid)
-                        numbers_detected += 1
-                        found.add(closest_droplet)
+        if t > 0:
+            print(t)
+            droplets_on_screen = get_droplets_on_screen(t, droplets_on_screen, all_droplets, course)
+            result = model.track(frame, tracker="bytetrack.yaml", persist=True)[0]
+            numbers_detected = len(result)
+            found = set()
+            labels = []
+            try:
+                
+                for data in result.boxes.data.tolist():
+                    xone, yone, xtwo, ytwo, _, confidence, _ = data
+                    mid = get_mid_point(xone, yone, xtwo, ytwo)
+                    try:
+                        drops_to_consider = x_y_map[mid].queue
+                        if t > 350:
+                            print(x_y_map[mid].top_left)
+                            print([drop.id for drop in drops_to_consider])
+                    except KeyError:
+                        '''A Key Error occurs when a detection happens outside of the Course in space that should not be considered.
+                        Will skip any computation for consideration and flag the false detection. Should be a True False occurrence
+                        '''
+                        print("Data: ", data)
+                        continue
+                    except Exception as e:
+                        exc_type, exc_obj, exc_tb = sys.exc_info()
+                        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                        print("Detection found outside of the Course.")
+                        print(exc_type, fname, exc_tb.tb_lineno)
+                        continue
 
-                        '''Toggle these  two comments to test with or without detections'''
-                        closest_droplet.update_last_seen(mid, t, x_y_map, speed_threshold)
-                        # closest_droplet.update_position(course)
-                        '''-------------------------------------------------------------'''
+                    closest_droplet = find_closest_droplet(drops_to_consider, mid)
+                    found.add(closest_droplet)
 
-                        if x_y_map[mid] != course.segments_in_order[closest_droplet.current_section]:
-                            closest_droplet.update_section(course, closest_droplet)
-                        
-                        box_drops(all_droplets, frame)
+                    '''Toggle these  two comments to test with or without detections'''
+                    closest_droplet.update_last_seen(mid, t, x_y_map, speed_threshold)
+                    # closest_droplet.update_position(course)
+                    '''-------------------------------------------------------------'''
 
-                        if confidence:
-                            labels.append(f"{closest_droplet.id} {confidence:0.2f}")
+                    if x_y_map[mid] != course.segments_in_order[closest_droplet.current_section]:
+                        closest_droplet.update_section(course, closest_droplet)
+                    
+                    box_drops(all_droplets, frame)
 
-                    if numbers_detected < droplets_on_screen:
-                        handle_missings(all_droplets, found, course)
+                    if confidence:
+                        labels.append(f"{closest_droplet.id} {confidence:0.2f}")
 
-                except Exception as e:
-                    exc_type, exc_obj, exc_tb = sys.exc_info()
-                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    print(exc_type, fname, exc_tb.tb_lineno)
+                if numbers_detected < droplets_on_screen:
+                    print("Handling Missing Cases")
+                    handle_missings(all_droplets, found, course)
 
-            detections = sv.Detections.from_ultralytics(result)
-            label_course(frame) 
-            label_curves_s_m_e(frame)
+            except Exception as e:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(exc_type, fname, exc_tb.tb_lineno)
+        # where_droplets_should_start(frame)  
+        detections = sv.Detections.from_ultralytics(result)
+        label_course(frame) 
+        label_curves_s_m_e(frame)
 
-            frame = box.annotate(scene=frame, detections=detections, labels = labels)
-            cv2.imshow("yolov8", frame)
+        frame = box.annotate(scene=frame, detections=detections, labels = labels)
+        cv2.imshow("yolov8", frame)
 
-            if (cv2.waitKey(10) == 27):
-                break
+        if (cv2.waitKey(10) == 27):
+            break
 
 if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
