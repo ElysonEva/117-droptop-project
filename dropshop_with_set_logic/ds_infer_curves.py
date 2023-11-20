@@ -57,9 +57,14 @@ class Droplet():
             slope = 0 
             self.y += slope
         else:
-
-            self.x += (self.curve_speed * direction_x)
-            self.y = segment.predict_y(self.x)
+            try:
+                try:
+                    self.x += (self.curve_speed * direction_x)
+                except AttributeError:
+                    print("Occured o nself.x")
+                self.y = segment.predict_y(self.x)
+            except AttributeError:
+                print("Occurred here")
 
         return (self.x, self.y)
     
@@ -198,6 +203,21 @@ class Curve():
         a, b, c = self.quadratic_coef
         return a * (x ** 2) + b * x + c
     
+def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int)) -> Droplet:
+    '''Find the closest droplet to a given (x, y) coordinate provided from a detection. If the droplet was associated already in this round
+    skip to save computations'''
+    closest = float('inf')
+    closest_drop = None
+    for drop in drops_to_consider:
+        drop_point = (drop.x, drop.y)
+        distance = get_distance(drop_point, mid) 
+        if distance < closest:
+            closest_drop = drop
+            closest = distance
+    return closest_drop  
+
+#                              Everything Below This should work Consistently                   #
+# ----------------------------------------------------------------------------------------------#
 def load_mac_files():
     '''Loads the proper files for Mac'''
     model = YOLO("runs/detect/train10/weights/best.pt")
@@ -240,7 +260,7 @@ def build_course() -> Path:
     curve4.add_sme((590, 300), (580, 322), (560, 330))
     course.add_segment(curve4)
 
-    straight5 = Straight((560, 320), (0, 340), (-1, 0))
+    straight5 = Straight((0, 320), (560, 340), (-1, 0))
     course.add_segment(straight5)
     return course
 
@@ -260,10 +280,7 @@ def label_course(frame) -> None:
     cv2.rectangle(frame, (580, 220), (600, 300), (0, 255, 0), 2)    #Fourth Straight
     cv2.rectangle(frame, (560, 300), (600, 340), (0, 200, 0), 2)    #Fourth Curve
     
-    cv2.rectangle(frame, (560, 320), (0, 340), (0, 255, 0), 2)      #Final Straight
-
-    # straight4 = Straight((530, 240), (600,300), (0, 1)) #Down
-    # course.add_segment(straight4)
+    cv2.rectangle(frame, (0, 320), (560, 340), (0, 255, 0), 2)      #Final Straight
 
 def label_curves_s_m_e(frame) -> None:
     '''Draw the bounding Boxes for the curvers and their Start, Middle, End. 
@@ -310,11 +327,17 @@ def label_curves_s_m_e(frame) -> None:
     start4_e_l, start4_e_r = give_me_a_small_box((560, 330))
     cv2.rectangle(frame, start4_e_l, start4_e_r, (0, 0, 200), 2)
 
-
 def build_x_y_map(course: Path) -> {(int, int): Path}:
-    '''Builds a python dictionary that stores every (x, y) coordinate inside a path segment/section
-      to map it to a specific segment so we can later check that queue associated to that segment 
-      with each detection'''
+    '''
+    Builds a python dictionary that stores every (x, y) coordinate inside a path segment/section
+    to map it to a specific segment so we can later check that queue associated to that segment 
+    with each detection
+      
+    Important Note: the Paths must be mapped with top left and bottom right points or else the below's 
+    range will cause an issue. Can be handled if the input ever consistently fails by adding a conditonal
+    making x2 the larger of the two points and y2 similarly the larger of y1 and y2.
+    '''
+    
     ret_dic = {}
     for course in course.segments_in_order:
         x1, y1 = course.top_left
@@ -386,19 +409,6 @@ def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) 
     else:
         return num_droplets
 
-def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int)) -> Droplet:
-    '''Find the closest droplet to a given (x, y) coordinate provided from a detection. If the droplet was associated already in this round
-    skip to save computations'''
-    closest = float('inf')
-    closest_drop = None
-    for drop in drops_to_consider:
-        drop_point = (drop.x, drop.y)
-        distance = get_distance(drop_point, mid) 
-        if distance < closest:
-            closest_drop = drop
-            closest = distance
-    return closest_drop  
-
 def box_drops(drops: {Droplet}, frame) -> None:
     '''This boxs the Droplets I know about'''
     for drop in drops:
@@ -420,6 +430,10 @@ def where_droplets_should_start(frame) -> None:
     # cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
 
 def main():
+    '''Initializes all the variables the set of all droplets to help check for the missing droplets. The course that holds all the segments on Straights and Curves
+    x_y_map = {(x, y) = Segment} is a dictionary that maps all x,y points in side of each segment to that particular segment. Allows for looking up Droplets in that section
+    speed_threshold prevents detection from increasing average speed to beyond a reasonable speed.
+    '''
     all_droplets = set()
     course = build_course()
     x_y_map = build_x_y_map(course)
@@ -430,13 +444,15 @@ def main():
     if not video_cap.isOpened():
         print("Error: Video file could not be opened.")
         return
-    
+
+    '''Initializes Time t to help debug on specific frames or time intervals of the video. Droplets on screen is a counter for how many droplets to expect at any given time t'''    
     t = 0
     droplets_on_screen = 0
     # while t < 500: 
     while video_cap.isOpened():
-        t += 1
+        t += 1 #Increment the time
 
+        '''Open the video frames and play it'''
         ret, frame = video_cap.read()
         if not ret:
             print("Video ended")
@@ -444,34 +460,45 @@ def main():
 
         if t > 0:
             print(t)
+            '''Droplets on screen is to get how many droplets should be on screen at any given time t.
+            Result holds the model's detections. Found set is used to be compared to all the droplets to see if there's a mising one. Numbers detected operates similarly
+            Labels is to generate the strings/text for the bounding boxes of the detections
+            '''
             droplets_on_screen = get_droplets_on_screen(t, droplets_on_screen, all_droplets, course)
             result = model.track(frame, tracker="bytetrack.yaml", persist=True)[0]
             numbers_detected = len(result)
             found = set()
             labels = []
+            
             try:
-                
+                '''Data is from the models detection in the formate of top left point, bottom right point, __, confidence, class from the data set
+                mid is the middle point of two points. used in this case for the top left and bottom right point of each detection
+                '''
                 for data in result.boxes.data.tolist():
                     xone, yone, xtwo, ytwo, _, confidence, _ = data
                     mid = get_mid_point(xone, yone, xtwo, ytwo)
+
+                    '''The following try except clause is used for debugging or handling edge cases.'''
                     try:
+                        '''drops to consider is ideally always the drops in the segment closest to the detection'''
                         drops_to_consider = x_y_map[mid].queue
-                        if t > 350:
+                        '''Ignore this conditional'''
+                        if t > 0:
                             print(x_y_map[mid].top_left)
                             print([drop.id for drop in drops_to_consider])
                     except KeyError:
                         '''A Key Error occurs when a detection happens outside of the Course in space that should not be considered.
                         Will skip any computation for consideration and flag the false detection. Should be a True False occurrence
                         '''
-                        print("Data: ", data)
+                        print("Detection occurred outside of the course. Data: ", data)
                         continue
                     except Exception as e:
                         exc_type, exc_obj, exc_tb = sys.exc_info()
                         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                        print("Detection found outside of the Course.")
                         print(exc_type, fname, exc_tb.tb_lineno)
                         continue
-
+                        
+                    '''Find Closest Droplet takes a set of drops in the segment and compares it to the detections then adds it to find'''
                     closest_droplet = find_closest_droplet(drops_to_consider, mid)
                     found.add(closest_droplet)
 
@@ -480,9 +507,14 @@ def main():
                     # closest_droplet.update_position(course)
                     '''-------------------------------------------------------------'''
 
+                    #Error could be here as well since data is stored in two segments at a time
+                    '''If the current section that the detection was found in isn't the same registered with the droplet
+                    update the droplet's current position in that section. This results in removing itself in the previous segment. Making sure it's
+                    in the section it was discovered in as well as carrying the information over the to the next section'''
                     if x_y_map[mid] != course.segments_in_order[closest_droplet.current_section]:
                         closest_droplet.update_section(course, closest_droplet)
                     
+                    '''The remainder of the code is the labeling and drawing of the map on the frame'''
                     box_drops(all_droplets, frame)
 
                     if confidence:
@@ -496,7 +528,9 @@ def main():
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                 print(exc_type, fname, exc_tb.tb_lineno)
-        # where_droplets_should_start(frame)  
+
+        # where_droplets_should_start(frame)  #Call to show dispenser locations
+
         detections = sv.Detections.from_ultralytics(result)
         label_course(frame) 
         label_curves_s_m_e(frame)
