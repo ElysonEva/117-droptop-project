@@ -89,11 +89,11 @@ class Droplet():
                     course.segments_in_order[self.current_section + 1].add_droplet(droplet)
     
     def update_last_seen(self, mid : (int, int), t : int, x_y_map: {(int, int): Path}, speed_threshold : int) -> None:
-        '''In Progress 11/13/2023 1:07 AM Something with this is breaking occassionally will have to see what
+        '''
         This function initially intended to calculate trajectory over averages if a Droplet was detected. This then updates over
         the difference between its last difference in straights. The trajectory for curves needs to be decided still.
 
-        In Progress Update 11/18/2023 / 8:14 Pm 
+        11/18/2023 / 8:14 Pm 
         Includes dynamically updating speed based on averages and width of the curves
         Uses width of the curves because the width of the curve projects where it will be in the Y axis. If the curve is narrow and the increments of X
         are too big you'll exit the curve quickly. If it's too wide and increments of X too small then the droplet will move slowly across the curve
@@ -235,14 +235,14 @@ def build_course() -> Path:
     straight1 = Straight((75, 50), (460, 70), (-1, 0)) #Left
     course.add_segment(straight1)
 
-    curve1 = Curve((25, 50), (75, 110), (-1, 1)) #Left and Down
-    curve1.add_sme((75, 60), (60, 80), (52, 110))
+    curve1 = Curve((45, 50), (75, 110), (-1, 1)) #Left and Down
+    curve1.add_sme((75, 60), (60, 80), (50, 110))
     course.add_segment(curve1)
 
     straight2 = Straight((45, 110), (60, 160), (0, 1)) #Down
     course.add_segment(straight2)
 
-    curve2 = Curve((40, 160), (100, 205), (1, 1)) #Right and Down
+    curve2 = Curve((45, 160), (100, 205), (1, 1)) #Right and Down
     curve2.add_sme((50, 160), (70, 190), (100, 195))
     course.add_segment(curve2)
 
@@ -269,10 +269,10 @@ def label_course(frame) -> None:
     This function is just to be used to help visualize the backend can be removed.
     '''
     cv2.rectangle(frame, (75, 50), (460, 70), (0, 255, 0), 2)       #First Straight
-    cv2.rectangle(frame, (25, 50), (75, 110), (0, 200, 0), 2)       #First Curve
+    cv2.rectangle(frame, (45, 50), (75, 110), (0, 200, 0), 2)       #First Curve
 
     cv2.rectangle(frame, (45, 110), (60, 160), (0, 255, 0), 2)      #Second Straight
-    cv2.rectangle(frame, (40, 160), (100, 205), (0, 200, 0), 2)     #Second Curve
+    cv2.rectangle(frame, (45, 160), (100, 205), (0, 200, 0), 2)     #Second Curve
 
     cv2.rectangle(frame, (100, 180), (560, 205), (0, 255, 0), 2)    #Third Straight
     cv2.rectangle(frame, (560, 180), (600, 220), (0, 200, 0), 2)    #Third Curve
@@ -292,7 +292,7 @@ def label_curves_s_m_e(frame) -> None:
     start1_m_l, start1_m_r = give_me_a_small_box((60, 80))
     cv2.rectangle(frame, start1_m_l, start1_m_r, (0, 0, 200), 2)
 
-    start1_e_l, start1_e_r = give_me_a_small_box((52, 110))
+    start1_e_l, start1_e_r = give_me_a_small_box((50, 110))
     cv2.rectangle(frame, start1_e_l, start1_e_r, (0, 0, 200), 2)
 
     #---------------------------------------------------------------------------------------------------#
@@ -400,12 +400,17 @@ def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) 
         course.add_droplet_to_queues(droplet_6)
         drops.add(droplet_6)
         return 6
-    elif t == 384:
+    elif t == 370:
         #455, 195, 
-        droplet_7 = Droplet(7, 455, 195, 1, 3)
+        droplet_7 = Droplet(7, 460, 195, 1, 4)
         course.add_droplet_to_queues(droplet_7)
         drops.add(droplet_7)
         return 7
+    elif t == 515:
+        droplet_8 = Droplet(8, 315, 195, 1, 4)
+        course.add_droplet_to_queues(droplet_8)
+        drops.add(droplet_8)
+        return 8 
     else:
         return num_droplets
 
@@ -426,9 +431,9 @@ def where_droplets_should_start(frame) -> None:
     '''Draws a bounding box in front of dispenser location'''
     cv2.rectangle(frame, (445, 55), (455, 65), (255, 0, 0), 2) #Droplet 1, 4, 5, 6
     cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
-    cv2.rectangle(frame, (450, 190), (460, 200), (255, 0, 0), 2) #Droplet 1, 4, 5, 6 455, 195
-    # cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
-
+    cv2.rectangle(frame, (445, 190), (455, 200), (255, 0, 0), 2) 
+    cv2.rectangle(frame, (315, 190), (325, 200), (255, 0, 0), 2)
+    
 def main():
     '''Initializes all the variables the set of all droplets to help check for the missing droplets. The course that holds all the segments on Straights and Curves
     x_y_map = {(x, y) = Segment} is a dictionary that maps all x,y points in side of each segment to that particular segment. Allows for looking up Droplets in that section
@@ -482,10 +487,8 @@ def main():
                     try:
                         '''drops to consider is ideally always the drops in the segment closest to the detection'''
                         drops_to_consider = x_y_map[mid].queue
-                        '''Ignore this conditional'''
-                        if t > 0:
-                            print(x_y_map[mid].top_left)
-                            print([drop.id for drop in drops_to_consider])
+                        # drops_to_consider = all_droplets
+
                     except KeyError:
                         '''A Key Error occurs when a detection happens outside of the Course in space that should not be considered.
                         Will skip any computation for consideration and flag the false detection. Should be a True False occurrence
@@ -529,7 +532,7 @@ def main():
                 fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                 print(exc_type, fname, exc_tb.tb_lineno)
 
-        # where_droplets_should_start(frame)  #Call to show dispenser locations
+        where_droplets_should_start(frame)  #Call to show dispenser locations
 
         detections = sv.Detections.from_ultralytics(result)
         label_course(frame) 
