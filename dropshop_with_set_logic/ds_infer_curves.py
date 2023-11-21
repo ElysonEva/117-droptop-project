@@ -208,12 +208,21 @@ def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int)) -> Drople
     skip to save computations'''
     closest = float('inf')
     closest_drop = None
+    # Debugging #
+    # comparisons = []
+    #           #
+
     for drop in drops_to_consider:
         drop_point = (drop.x, drop.y)
         distance = get_distance(drop_point, mid) 
         if distance < closest:
             closest_drop = drop
             closest = distance
+            #Debugging
+            # comparisons.append((closest_drop.id, drop_point, distance))
+    # print(comparisons)
+    # print("Compared to: ", closest_drop.id)
+    #
     return closest_drop  
 
 #                              Everything Below This should work Consistently                   #
@@ -232,11 +241,11 @@ def build_course() -> Path:
     '''
     course = Path()
 
-    straight1 = Straight((75, 50), (460, 70), (-1, 0)) #Left
+    straight1 = Straight((85, 50), (460, 70), (-1, 0)) #Left
     course.add_segment(straight1)
 
-    curve1 = Curve((45, 50), (75, 110), (-1, 1)) #Left and Down
-    curve1.add_sme((75, 60), (60, 80), (50, 110))
+    curve1 = Curve((45, 50), (85, 110), (-1, 1)) #Left and Down
+    curve1.add_sme((85, 60), (60, 80), (50, 110))
     course.add_segment(curve1)
 
     straight2 = Straight((45, 110), (60, 160), (0, 1)) #Down
@@ -268,8 +277,8 @@ def label_course(frame) -> None:
     '''Draws bounding boxes on Curves for now this is assumed given. 
     This function is just to be used to help visualize the backend can be removed.
     '''
-    cv2.rectangle(frame, (75, 50), (460, 70), (0, 255, 0), 2)       #First Straight
-    cv2.rectangle(frame, (45, 50), (75, 110), (0, 200, 0), 2)       #First Curve
+    cv2.rectangle(frame, (85, 50), (460, 70), (0, 255, 0), 2)       #First Straight
+    cv2.rectangle(frame, (45, 50), (85, 110), (0, 200, 0), 2)       #First Curve
 
     cv2.rectangle(frame, (45, 110), (60, 160), (0, 255, 0), 2)      #Second Straight
     cv2.rectangle(frame, (45, 160), (100, 205), (0, 200, 0), 2)     #Second Curve
@@ -286,7 +295,7 @@ def label_curves_s_m_e(frame) -> None:
     '''Draw the bounding Boxes for the curvers and their Start, Middle, End. 
     Similarly Label Course this can be removed as well and is used
     to label the start middle and end of curves'''
-    start1_left, start1_right = give_me_a_small_box((75, 60))
+    start1_left, start1_right = give_me_a_small_box((85, 60))
     cv2.rectangle(frame, start1_left, start1_right, (0, 0, 200), 2) #First Curve
     
     start1_m_l, start1_m_r = give_me_a_small_box((60, 80))
@@ -487,6 +496,7 @@ def main():
                     try:
                         '''drops to consider is ideally always the drops in the segment closest to the detection'''
                         drops_to_consider = x_y_map[mid].queue
+                        print([drop.id for drop in drops_to_consider])
                         # drops_to_consider = all_droplets
 
                     except KeyError:
@@ -532,7 +542,7 @@ def main():
                 fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                 print(exc_type, fname, exc_tb.tb_lineno)
 
-        where_droplets_should_start(frame)  #Call to show dispenser locations
+        # where_droplets_should_start(frame)  #Call to show dispenser locations
 
         detections = sv.Detections.from_ultralytics(result)
         label_course(frame) 
