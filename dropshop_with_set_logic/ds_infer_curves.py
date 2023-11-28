@@ -421,6 +421,13 @@ def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) 
     else:
         return num_droplets
 
+def where_droplets_should_start(frame) -> None:
+    '''Draws a bounding box in front of dispenser location'''
+    cv2.rectangle(frame, (445, 55), (455, 65), (255, 0, 0), 2) #Droplet 1, 4, 5, 6
+    cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
+    cv2.rectangle(frame, (445, 190), (455, 200), (255, 0, 0), 2) 
+    cv2.rectangle(frame, (315, 190), (325, 200), (255, 0, 0), 2)
+    
 def box_drops(drops: {Droplet}, frame) -> None:
     '''This boxs the Droplets I know about'''
     for drop in drops:
@@ -434,12 +441,7 @@ def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
         drop.update_position(map_course)
         found.add(drop)
 
-def where_droplets_should_start(frame) -> None:
-    '''Draws a bounding box in front of dispenser location'''
-    cv2.rectangle(frame, (445, 55), (455, 65), (255, 0, 0), 2) #Droplet 1, 4, 5, 6
-    cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
-    cv2.rectangle(frame, (445, 190), (455, 200), (255, 0, 0), 2) 
-    cv2.rectangle(frame, (315, 190), (325, 200), (255, 0, 0), 2)
+
 
 def load_mac_files():
     '''Loads the proper files for Mac'''
@@ -474,6 +476,7 @@ def main(weights_path, video_path):
 
         '''Open the video frames and play it'''
         ret, frame = video_cap.read()
+        frame = cv2.resize(frame, (1280, 1024))
         if not ret:
             print("Video ended")
             break
@@ -567,8 +570,8 @@ def main(weights_path, video_path):
 if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
     start_time = time.perf_counter()
-    main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
-    # main("runs/detect/train3/weights/best.pt", "droplet_videos/1_onedroplet_raw.mp4")
+    # main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
+    main("runs/detect/train3/weights/best.pt", "droplet_videos/1_onedroplet_raw.mp4")
     # build() #Just a test function to isolate portions
     end_time = time.perf_counter()
     execution_time = end_time - start_time
