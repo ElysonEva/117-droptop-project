@@ -240,37 +240,19 @@ def build_course() -> Path:
     11/18/2023 This function should be replaced by the interface by drawing out the course
     '''
     course = Path()
+    
+    lst_of_segments = [Straight((85, 50), (460, 70), (-1, 0)),  Curve((45, 50), (85, 110), (-1, 1)), Straight((45, 110), (60, 160), (0, 1)),
+                       Curve((45, 160), (100, 205), (1, 1)), Straight((100, 180), (560, 205), (1, 0)),  Curve((560, 180), (600, 220), (1, 1)),
+                       Straight((580, 220), (600, 300), (0, 1)), Curve((560, 300), (600, 340), (-1, 1)), Straight((0, 320), (560, 340), (-1, 0))]
+    
+    lst_of_sme = [None, ((85, 60), (60, 80), (50, 110)), None, ((50, 160), (70, 190), (100, 195)), None, ((560, 193), (580, 200), (590, 220)), None, ((590, 300), (580, 322), (560, 330)), None]
 
-    straight1 = Straight((85, 50), (460, 70), (-1, 0)) #Left
-    course.add_segment(straight1)
-
-    curve1 = Curve((45, 50), (85, 110), (-1, 1)) #Left and Down
-    curve1.add_sme((85, 60), (60, 80), (50, 110))
-    course.add_segment(curve1)
-
-    straight2 = Straight((45, 110), (60, 160), (0, 1)) #Down
-    course.add_segment(straight2)
-
-    curve2 = Curve((45, 160), (100, 205), (1, 1)) #Right and Down
-    curve2.add_sme((50, 160), (70, 190), (100, 195))
-    course.add_segment(curve2)
-
-    straight3 = Straight((100, 180), (560, 205), (1, 0))
-    course.add_segment(straight3)
-
-    curve3 = Curve((560, 180), (600, 220), (1, 1)) #Right Down
-    curve3.add_sme((560, 193), (580, 200), (590, 220))
-    course.add_segment(curve3)
-
-    straight4 = Straight((580, 220), (600, 300), (0, 1)) #Down
-    course.add_segment(straight4)
-
-    curve4 = Curve((560, 300), (600, 340), (-1, 1)) #Left Down
-    curve4.add_sme((590, 300), (580, 322), (560, 330))
-    course.add_segment(curve4)
-
-    straight5 = Straight((0, 320), (560, 340), (-1, 0))
-    course.add_segment(straight5)
+    for i in range(len(lst_of_segments)):
+        segment = lst_of_segments[i]
+        course.add_segment(segment)
+        if isinstance(segment, Curve):
+            s, m, e = lst_of_sme[i]
+            segment.add_sme(s, m, e)
     return course
 
 def label_course(frame) -> None:
@@ -336,39 +318,6 @@ def label_curves_s_m_e(frame) -> None:
     start4_e_l, start4_e_r = give_me_a_small_box((560, 330))
     cv2.rectangle(frame, start4_e_l, start4_e_r, (0, 0, 200), 2)
 
-def build_x_y_map(course: Path) -> {(int, int): Path}:
-    '''
-    Builds a python dictionary that stores every (x, y) coordinate inside a path segment/section
-    to map it to a specific segment so we can later check that queue associated to that segment 
-    with each detection
-    '''
-    
-    ret_dic = {}
-    for course in course.segments_in_order:
-        x1, y1 = course.top_left
-        x2, y2 = course.bottom_right
-        smaller_x, bigger_x = min(x1, x2), max(x1, x2)
-        smaller_y, bigger_y = min(y1, y2), max(y1, y2)
-        for i in range(smaller_x, bigger_x + 1): 
-            for j in range(smaller_y, bigger_y + 1):
-                ret_dic[(i, j)] = course
-    return ret_dic
-
-def get_distance(point1: (int, int), point2: (int, int)) -> float:
-    '''Distance formula between two points'''
-    x1, y1 = point1
-    x2, y2 = point2
-    return math.sqrt((x2 - x1)** 2 + (y2 - y1) ** 2)
-
-def get_mid_point(xone: int, yone: int, xtwo: int, ytwo: int) -> (int, int):
-    '''Take two corners and return the middle of the two points'''
-    return ((xone + xtwo)//2, (yone + ytwo)//2)
-
-def give_me_a_small_box(point: (int, int)) -> ((int, int), (int, int)):
-    '''Creates a small box for open CV to generate a bounding box a round a point'''
-    #Open CV doesn't support float objects
-    return (int(point[0] - 2), int(point[1] - 2)),(int(point[0] + 2), int(point[1] + 2))
-
 def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) -> int:
     '''Initializes Droplet objects this is assumed I know it before hand T == Frame they appear in'''
     if t == 1:
@@ -428,6 +377,39 @@ def where_droplets_should_start(frame) -> None:
     cv2.rectangle(frame, (445, 190), (455, 200), (255, 0, 0), 2) 
     cv2.rectangle(frame, (315, 190), (325, 200), (255, 0, 0), 2)
     
+def build_x_y_map(course: Path) -> {(int, int): Path}:
+    '''
+    Builds a python dictionary that stores every (x, y) coordinate inside a path segment/section
+    to map it to a specific segment so we can later check that queue associated to that segment 
+    with each detection
+    '''
+    
+    ret_dic = {}
+    for course in course.segments_in_order:
+        x1, y1 = course.top_left
+        x2, y2 = course.bottom_right
+        smaller_x, bigger_x = min(x1, x2), max(x1, x2)
+        smaller_y, bigger_y = min(y1, y2), max(y1, y2)
+        for i in range(smaller_x, bigger_x + 1): 
+            for j in range(smaller_y, bigger_y + 1):
+                ret_dic[(i, j)] = course
+    return ret_dic
+
+def get_distance(point1: (int, int), point2: (int, int)) -> float:
+    '''Distance formula between two points'''
+    x1, y1 = point1
+    x2, y2 = point2
+    return math.sqrt((x2 - x1)** 2 + (y2 - y1) ** 2)
+
+def get_mid_point(xone: int, yone: int, xtwo: int, ytwo: int) -> (int, int):
+    '''Take two corners and return the middle of the two points'''
+    return ((xone + xtwo)//2, (yone + ytwo)//2)
+
+def give_me_a_small_box(point: (int, int)) -> ((int, int), (int, int)):
+    '''Creates a small box for open CV to generate a bounding box a round a point'''
+    #Open CV doesn't support float objects
+    return (int(point[0] - 2), int(point[1] - 2)),(int(point[0] + 2), int(point[1] + 2))
+
 def box_drops(drops: {Droplet}, frame) -> None:
     '''This boxs the Droplets I know about'''
     for drop in drops:
@@ -476,7 +458,7 @@ def main(weights_path, video_path):
 
         '''Open the video frames and play it'''
         ret, frame = video_cap.read()
-        frame = cv2.resize(frame, (1280, 1024))
+        # frame = cv2.resize(frame, (1280, 1024))
         if not ret:
             print("Video ended")
             break
@@ -570,8 +552,8 @@ def main(weights_path, video_path):
 if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
     start_time = time.perf_counter()
-    # main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
-    main("runs/detect/train3/weights/best.pt", "droplet_videos/1_onedroplet_raw.mp4")
+    main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
+    # main("runs/detect/train3/weights/best.pt", "droplet_videos/1_onedroplet_raw.mp4")
     # build() #Just a test function to isolate portions
     end_time = time.perf_counter()
     execution_time = end_time - start_time
