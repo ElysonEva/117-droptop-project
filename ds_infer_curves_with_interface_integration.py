@@ -23,7 +23,7 @@ class Path():
         if length > 1 and droplet.current_section + 1 < length:
             self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
         self.segments_in_order[droplet.current_section].add_droplet(droplet)
-
+        print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
 class Droplet():
     def __init__(self, id, x: int = None, y:int = None, trajectory: int = 1, current_section: int = 0) -> None:
         '''Initialize Droplet Object'''
@@ -39,6 +39,15 @@ class Droplet():
         If the droplet is in a Straight then the case is update the direction depending on a flat trajectory. 
         If it's on a curve then use the assumption we know the start, middle, and end point. Calculate the Coefficients of a Quadratic Equation given three points.
         This assumes that all curves are Quadratic in nature and has a start, middle, end. More information for the quadratic process is in the coming functions
+
+         11/18/2023:
+        self.curve speed should be dynamically changed, initialize at initial droplet trajectory.
+        When Interface is Integrated replace the commented slope variable
+        In concept Direction y shouldn't matter because slope is calculated from top left and top right
+        where left < right and will divide into
+        Will be accordingly negative or positive.
+        May have a Zero Division Error if a Segment box is ever one pixel which should never happen. But if that ever wanted to be handled, it can be done
+        by adding a conditional if segment.top_left[0] != segment.top_right[0]
         '''
         segment = course.segments_in_order[self.current_section]
         direction_x, direction_y = segment.direction
@@ -48,9 +57,14 @@ class Droplet():
             slope = 0 # TODO When Interface is Integrated replace this with above ^^^
             self.y += slope
         else:
-            self.x += (0.3 * direction_x) #Note this trajectory is hard coded for the curve will have to address this
-            self.y = segment.predict_y(self.x)
-
+            try:
+                try:
+                    self.x += (self.curve_speed * direction_x)
+                except AttributeError:
+                    print("Occured o nself.x")
+                self.y = segment.predict_y(self.x)
+            except AttributeError:
+                print("Occurred here")
         return (self.x, self.y)
     
     def update_section(self, course: Path, droplet) -> None:
@@ -177,34 +191,17 @@ def build_course(bound_list) -> Path:
     For curves add the start, middle, end points'''
     course = Path()
 
-    # add code to build course based on the boundingBoxList
-    # reminder that
-    # 0             1                    2         3[0(0         1        )  1    ]  4
-    # [boundingNum, "straight"|"curved", direction, [(initial x, initial y), (final x, final y)], OPTIONAL (x, y)]
-    # interface is 1200, 720 so sub track 560, 240
-
-    """
-        for box in boundingBoxList 
-            create 
-    """
-
     for box in bound_list:
         new_box = ""
+        print(box)
         if box[1] == "straight":
             new_box = Straight((box[3][0]), (box[3][1]), box[2])
             course.add_segment(new_box)
         else:
             # TODO add a way to make boxes formated so they are dragged from the bottom left
             new_box = Curve((box[3][0]), (box[3][1]), box[2])
-            # self.start based on if coming from left and right
-            # self.mid = m
             # TODO redo based on changes to direction in bounding box class
-            # self.end = e based on up or down, assumed right now going down,
             new_box.add_sme(box[5][0], box[4], box[5][1])
-            # if (box[2] == "left"): # <-|
-            #     new_box.add_sme(box[5][0], box[4], box[5][1])
-            # else:
-            #     new_box.add_sme(box[5][0], box[4], box[5][1]) # ->
             course.add_segment(new_box)
 
 
@@ -393,7 +390,6 @@ def main(bound_box_list):
             ret, frame = video_cap.read()
             frame = cv2.resize(frame, (640, 480)) # default frame size, reduce bounding boxes to match
 
-            # interface is 1200, 720 so sub track 560, 240
 
             if not ret:
                 print("Video ended")
