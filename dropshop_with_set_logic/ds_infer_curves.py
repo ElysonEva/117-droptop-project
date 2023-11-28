@@ -341,18 +341,16 @@ def build_x_y_map(course: Path) -> {(int, int): Path}:
     Builds a python dictionary that stores every (x, y) coordinate inside a path segment/section
     to map it to a specific segment so we can later check that queue associated to that segment 
     with each detection
-      
-    Important Note: the Paths must be mapped with top left and bottom right points or else the below's 
-    range will cause an issue. Can be handled if the input ever consistently fails by adding a conditonal
-    making x2 the larger of the two points and y2 similarly the larger of y1 and y2.
     '''
     
     ret_dic = {}
     for course in course.segments_in_order:
         x1, y1 = course.top_left
         x2, y2 = course.bottom_right
-        for i in range(x1, x2 + 1): 
-            for j in range(y1, y2 + 1):
+        smaller_x, bigger_x = min(x1, x2), max(x1, x2)
+        smaller_y, bigger_y = min(y1, y2), max(y1, y2)
+        for i in range(smaller_x, bigger_x + 1): 
+            for j in range(smaller_y, bigger_y + 1):
                 ret_dic[(i, j)] = course
     return ret_dic
 
@@ -442,8 +440,14 @@ def where_droplets_should_start(frame) -> None:
     cv2.rectangle(frame, (315, 55), (325, 65), (255, 0, 0), 2) #Droplet 2, 3
     cv2.rectangle(frame, (445, 190), (455, 200), (255, 0, 0), 2) 
     cv2.rectangle(frame, (315, 190), (325, 200), (255, 0, 0), 2)
-    
-def main():
+
+def load_mac_files():
+    '''Loads the proper files for Mac'''
+    model = YOLO("runs/detect/train10/weights/best.pt")
+    video_cap = cv2.VideoCapture("droplet_videos/video_data_Rainbow 11-11-22.m4v")
+    return model, video_cap 
+
+def main(weights_path, video_path):
     '''Initializes all the variables the set of all droplets to help check for the missing droplets. The course that holds all the segments on Straights and Curves
     x_y_map = {(x, y) = Segment} is a dictionary that maps all x,y points in side of each segment to that particular segment. Allows for looking up Droplets in that section
     speed_threshold prevents detection from increasing average speed to beyond a reasonable speed.
@@ -453,7 +457,9 @@ def main():
     x_y_map = build_x_y_map(course)
     box = sv.BoxAnnotator(text_scale=0.3)
     speed_threshold = 5
-    model, video_cap = load_mac_files()
+    # model, video_cap = load_mac_files()
+    model = YOLO(weights_path)
+    video_cap = cv2.VideoCapture(video_path)
 
     if not video_cap.isOpened():
         print("Error: Video file could not be opened.")
@@ -489,7 +495,11 @@ def main():
                 mid is the middle point of two points. used in this case for the top left and bottom right point of each detection
                 '''
                 for data in result.boxes.data.tolist():
-                    xone, yone, xtwo, ytwo, _, confidence, _ = data
+                    try:
+                        xone, yone, xtwo, ytwo, _, confidence, _ = data
+                    except ValueError:
+                        print("No Data given by detection")
+
                     mid = get_mid_point(xone, yone, xtwo, ytwo)
 
                     '''The following try except clause is used for debugging or handling edge cases.'''
@@ -557,7 +567,8 @@ def main():
 if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
     start_time = time.perf_counter()
-    main()
+    main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
+    # main("runs/detect/train3/weights/best.pt", "droplet_videos/1_onedroplet_raw.mp4")
     # build() #Just a test function to isolate portions
     end_time = time.perf_counter()
     execution_time = end_time - start_time
