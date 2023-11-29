@@ -119,7 +119,6 @@ class Droplet():
                     new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
                     if new_trajectory and new_trajectory <= speed_threshold:
                         self.trajectory = new_trajectory
-
             else:
                 current_curve = x_y_map[mid]
                 middle_curve_x = current_curve.mid[0]
@@ -208,25 +207,15 @@ def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int)) -> Drople
     skip to save computations'''
     closest = float('inf')
     closest_drop = None
-    # Debugging #
-    # comparisons = []
-    #           #
-
     for drop in drops_to_consider:
         drop_point = (drop.x, drop.y)
         distance = get_distance(drop_point, mid) 
         if distance < closest:
             closest_drop = drop
             closest = distance
-            #Debugging
-            # comparisons.append((closest_drop.id, drop_point, distance))
-    # print(comparisons)
-    # print("Compared to: ", closest_drop.id)
-    #
+
     return closest_drop  
 
-#                              Everything Below This should work Consistently                   #
-# ----------------------------------------------------------------------------------------------#
 def load_mac_files():
     '''Loads the proper files for Mac'''
     model = YOLO("runs/detect/train10/weights/best.pt")
@@ -237,10 +226,10 @@ def build_course() -> Path:
     '''This builds the Path object assuming I know the course before hand. Add the segments to the course's queue
     For curves add the start, middle, end points
     
-    11/18/2023 This function should be replaced by the interface by drawing out the course
+    11/28/2023 This function should be replaced by the interface by drawing out the course. However can be kept to test repeating cases through either hard code or saved file
     '''
     course = Path()
-    
+
     lst_of_segments = [Straight((85, 50), (460, 70), (-1, 0)),  Curve((45, 50), (85, 110), (-1, 1)), Straight((45, 110), (60, 160), (0, 1)),
                        Curve((45, 160), (100, 205), (1, 1)), Straight((100, 180), (560, 205), (1, 0)),  Curve((560, 180), (600, 220), (1, 1)),
                        Straight((580, 220), (600, 300), (0, 1)), Curve((560, 300), (600, 340), (-1, 1)), Straight((0, 320), (560, 340), (-1, 0))]
@@ -253,70 +242,33 @@ def build_course() -> Path:
         if isinstance(segment, Curve):
             s, m, e = lst_of_sme[i]
             segment.add_sme(s, m, e)
+            
     return course
 
-def label_course(frame) -> None:
+def label_course(frame, course) -> None:
     '''Draws bounding boxes on Curves for now this is assumed given. 
     This function is just to be used to help visualize the backend can be removed.
     '''
-    cv2.rectangle(frame, (85, 50), (460, 70), (0, 255, 0), 2)       #First Straight
-    cv2.rectangle(frame, (45, 50), (85, 110), (0, 200, 0), 2)       #First Curve
+    rgb = (0, 255, 0)
+    thick = 2
+    for segment in course.segments_in_order:
+        cv2.rectangle(frame, segment.top_left, segment.bottom_right, rgb, thick)
 
-    cv2.rectangle(frame, (45, 110), (60, 160), (0, 255, 0), 2)      #Second Straight
-    cv2.rectangle(frame, (45, 160), (100, 205), (0, 200, 0), 2)     #Second Curve
-
-    cv2.rectangle(frame, (100, 180), (560, 205), (0, 255, 0), 2)    #Third Straight
-    cv2.rectangle(frame, (560, 180), (600, 220), (0, 200, 0), 2)    #Third Curve
-
-    cv2.rectangle(frame, (580, 220), (600, 300), (0, 255, 0), 2)    #Fourth Straight
-    cv2.rectangle(frame, (560, 300), (600, 340), (0, 200, 0), 2)    #Fourth Curve
-    
-    cv2.rectangle(frame, (0, 320), (560, 340), (0, 255, 0), 2)      #Final Straight
-
-def label_curves_s_m_e(frame) -> None:
+def label_curves_s_m_e(frame, course) -> None:
     '''Draw the bounding Boxes for the curvers and their Start, Middle, End. 
     Similarly Label Course this can be removed as well and is used
     to label the start middle and end of curves'''
-    start1_left, start1_right = give_me_a_small_box((85, 60))
-    cv2.rectangle(frame, start1_left, start1_right, (0, 0, 200), 2) #First Curve
-    
-    start1_m_l, start1_m_r = give_me_a_small_box((60, 80))
-    cv2.rectangle(frame, start1_m_l, start1_m_r, (0, 0, 200), 2)
+    rgb = (0, 0, 200)
+    thick = 2
+    for segment in course.segments_in_order:
+        if isinstance(segment, Curve):
+            start_left, start_right = give_me_a_small_box(segment.start)
+            mid_left, mid_right = give_me_a_small_box(segment.mid)
+            end_left, end_right = give_me_a_small_box(segment.end)
 
-    start1_e_l, start1_e_r = give_me_a_small_box((50, 110))
-    cv2.rectangle(frame, start1_e_l, start1_e_r, (0, 0, 200), 2)
-
-    #---------------------------------------------------------------------------------------------------#
-    start2_left, start2_right = give_me_a_small_box((50, 160))
-    cv2.rectangle(frame, start2_left, start2_right, (0, 0, 200), 2) #Second Curve
-    
-    start2_m_l, start2_m_r = give_me_a_small_box((70, 190))
-    cv2.rectangle(frame, start2_m_l, start2_m_r, (0, 0, 200), 2)
-
-    start2_e_l, start2_e_r = give_me_a_small_box((100, 195))
-    cv2.rectangle(frame, start2_e_l, start2_e_r, (0, 0, 200), 2)
-    #---------------------------------------------------------------------------------------------------#
-    #cv2.rectangle(frame, (560, 180), (600, 240), (0, 200, 0), 2) #Third Curve
-
-    start3_left, start3_right = give_me_a_small_box((560, 193))
-    cv2.rectangle(frame, start3_left, start3_right, (0, 0, 200), 2) #Third Curve
-    
-    start3_m_l, start3_m_r = give_me_a_small_box((580, 200))
-    cv2.rectangle(frame, start3_m_l, start3_m_r, (0, 0, 200), 2)
-
-    start3_e_l, start3_e_r = give_me_a_small_box((590, 220))
-    cv2.rectangle(frame, start3_e_l, start3_e_r, (0, 0, 200), 2)
-
-    #---------------------------------------------------------------------------------------------------#
-    #cv2.rectangle(frame, (540, 300), (600, 350), (0, 200, 0), 2)    #Fourth Curve
-    start4_left, start4_right = give_me_a_small_box((590, 300))
-    cv2.rectangle(frame, start4_left, start4_right, (0, 0, 200), 2)
-    
-    start4_m_l, start4_m_r = give_me_a_small_box((580, 322))
-    cv2.rectangle(frame, start4_m_l, start4_m_r, (0, 0, 200), 2)
-
-    start4_e_l, start4_e_r = give_me_a_small_box((560, 330))
-    cv2.rectangle(frame, start4_e_l, start4_e_r, (0, 0, 200), 2)
+            cv2.rectangle(frame, start_left, start_right, rgb, thick)
+            cv2.rectangle(frame, mid_left, mid_right, rgb, thick)
+            cv2.rectangle(frame, end_left, end_right, rgb, thick)
 
 def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) -> int:
     '''Initializes Droplet objects this is assumed I know it before hand T == Frame they appear in'''
@@ -423,8 +375,6 @@ def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
         drop.update_position(map_course)
         found.add(drop)
 
-
-
 def load_mac_files():
     '''Loads the proper files for Mac'''
     model = YOLO("runs/detect/train10/weights/best.pt")
@@ -458,7 +408,9 @@ def main(weights_path, video_path):
 
         '''Open the video frames and play it'''
         ret, frame = video_cap.read()
+
         # frame = cv2.resize(frame, (1280, 1024))
+
         if not ret:
             print("Video ended")
             break
@@ -540,8 +492,8 @@ def main(weights_path, video_path):
         # where_droplets_should_start(frame)  #Call to show dispenser locations
 
         detections = sv.Detections.from_ultralytics(result)
-        label_course(frame) 
-        label_curves_s_m_e(frame)
+        label_course(frame, course) 
+        label_curves_s_m_e(frame, course)
 
         frame = box.annotate(scene=frame, detections=detections, labels = labels)
         cv2.imshow("yolov8", frame)
