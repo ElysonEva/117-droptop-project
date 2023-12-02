@@ -35,7 +35,15 @@ class BoundingBoxCreator:
         self.display_x_resolution = 640
         self.display_y_resolution = 480
 
-
+        # directions
+        # left (-1,0)
+        # right (1, 0)
+        # down (0, -1)
+        # up (0, 1)
+        self.directions = {"Up":(0,0),
+                           "Up-Right":(1,1), "Right": (1,0), "Down-Right":(1,-1),
+                           "Down":(0,-1),
+                           "Down-Left":(-1,-1), "Left":(-1,0), "Up-Left":(-1,1)}
         self.direction = (0, 0)
         self.frame = None
         self.delete_mode = 1
@@ -63,6 +71,7 @@ class BoundingBoxCreator:
         pady="15 15",
         row=1,
         sticky="n")
+
         self.boundingRadioFrame = ttk.Frame(self.boundingFrame)
         self.boundingRadioFrame.configure(height=200, width=200)
         self.straightRadio = ttk.Radiobutton(self.boundingRadioFrame)
@@ -83,38 +92,19 @@ class BoundingBoxCreator:
         self.attributeLabel.grid(column=0, padx=10, pady="15 15", sticky="n")
         self.comboFrame = ttk.Frame(self.attributeFrame)
         self.comboFrame.configure(height=200, width=200)
-        directions = ["Up", "Up-Right", "Right", "Down-Right", "Down", "Down-Left", "Left", "Up-Left"]
-        self.directionCombo = ttk.Combobox(self.comboFrame, state="readonly", values=directions)
+        self.directionCombo = ttk.Combobox(self.comboFrame, state="readonly", values=list(self.directions.keys()))
         self.Direction = tk.StringVar()
         self.directionCombo.configure(textvariable=self.Direction)
+        print(self.direction)
         self.directionCombo.grid(column=0, row=1)
-        self.directionCombo.set(directions[0])
+        self.directionCombo.set("Up")
+        self.directionCombo.bind("<<ComboboxSelected>>", self.update_direction)
+
         directionLabel = ttk.Label(self.comboFrame)
         directionLabel.configure(state="normal", text='Direction')
         directionLabel.grid(column=0, padx=5, pady="0 15", row=0, sticky="w")
         self.comboFrame.grid(column=0, padx="10 10", row=3)
         self.attributeFrame.grid(column=0, row=3)
-        self.modeFrame = ttk.Frame(self.mainFrame)
-        self.modeFrame.configure(height=200, width=200)
-        self.modeLabel = ttk.Label(self.modeFrame)
-        self.modeLabel.configure(state="normal", text='Mode', width=20)
-        self.modeLabel.grid(
-            column=0,
-            padx=100,
-            pady="15 15",
-            row=1,
-            sticky="n")
-        self.combo = ttk.Frame(self.modeFrame)
-        self.combo.configure(height=200, width=200)
-        self.Type = tk.StringVar()
-        types = ["Stright","Curve"]
-        self.modeCombo = ttk.Combobox(self.combo, state="readonly", values=types)
-        self.modeCombo.configure(textvariable=self.Type)
-        self.modeCombo.grid(column=0, padx=20, row=1)
-        self.combo.grid(column=0, row=2)
-        self.modeCombo.set(types[0])
-
-        self.modeFrame.grid(column=0, pady=15, row=4, sticky="w")
         self.funcFrame = ttk.Frame(self.mainFrame)
         self.funcFrame.configure(height=200, width=200)
         self.clearButton = ttk.Button(self.funcFrame)
@@ -125,14 +115,14 @@ class BoundingBoxCreator:
         self.undoButton.configure(text='Undo')
         self.undoButton.grid(column=1, row=1)
         self.undoButton.configure(command=self.undo)
-        self.funcFrame.grid(column=0, row=5)
-        self.buttonFrame = ttk.Frame(self.mainFrame)
-        self.buttonFrame.configure(height=200, width=200)
-        self.deleteButton = ttk.Button(self.buttonFrame)
-        self.deleteButton.configure(text='Delete Selected Box')
-        self.deleteButton.grid(column=1, ipadx=50, pady=100, row=1)
-        self.deleteButton.configure(command=self.deleteSelected)
-        self.buttonFrame.grid(column=0, row=6)
+        self.funcFrame.grid(column=0, pady=15, row=5)
+        # unused
+        # self.buttonDelete = ttk.Frame(self.mainFrame)
+        # self.buttonDelete.configure(height=200, width=200)
+        # self.deleteButton = ttk.Button(self.buttonDelete)
+        # self.deleteButton = ttk.Button(self.buttonDelete, text='Delete Selected Box', command=self.deleteSelected)
+        # self.deleteButton.grid(column=1, ipadx=50, pady=100, row=1)
+        # self.buttonDelete.grid(column=0, row=6)
         self.mainFrame.grid(column=0, row=0)
         self.mainPane.add(self.mainFrame, weight="1")
         self.editabletreeview1 = EditableTreeview(self.mainPane)
@@ -140,10 +130,12 @@ class BoundingBoxCreator:
         editabletreeview1_cols = [
             'tree_bounding_number',
             'tree_bounding_type',
+            'tree_bound_direction',
             'tree_bounding_cord']
         editabletreeview1_dcols = [
             'tree_bounding_number',
             'tree_bounding_type',
+            'tree_bound_direction',
             'tree_bounding_cord']
         self.editabletreeview1.configure(
             columns=editabletreeview1_cols,
@@ -161,6 +153,12 @@ class BoundingBoxCreator:
             width=65,
             minwidth=20)
         self.editabletreeview1.column(
+            "tree_bound_direction",
+            anchor="w",
+            stretch=True,
+            width=30,
+            minwidth=20)
+        self.editabletreeview1.column(
             "tree_bounding_cord",
             anchor="w",
             stretch=True,
@@ -174,6 +172,10 @@ class BoundingBoxCreator:
             "tree_bounding_type",
             anchor="w",
             text='Bounding Box Type')
+        self.editabletreeview1.heading(
+            "tree_bound_direction",
+            anchor="w",
+            text='Direction')
         self.editabletreeview1.heading(
             "tree_bounding_cord",
             anchor="w",
@@ -190,15 +192,14 @@ class BoundingBoxCreator:
         # Main widget
         self.mainwindow = self.root
         # Main menu
-        _main_menu = self.create_menu7(self.mainwindow)
+        _main_menu = self.create_menu(self.mainwindow)
         self.mainwindow.configure(menu=_main_menu)
-
 
         self.root.mainloop()
 
 
 
-    def create_menu7(self, master):
+    def create_menu(self, master):
         menu7 = tk.Menu(master)
 
 
@@ -230,19 +231,26 @@ class BoundingBoxCreator:
             self.populate_tree()
 
     def populate_tree(self):
+        """
+        Updates tree with currently added bounding boxes with index number, type, direction, and coordinates.
+
+        """
         self.editabletreeview1.delete(*self.editabletreeview1.get_children())
 
         for item in self.bounding_boxes:
             # [boundingNum, "straight"|"curved", direction, [(initial x, initial y), (x,y)], OPTIONAL (x, y)]
-            self.editabletreeview1.insert("", "end", values=[item[0], item[1], item[3]])
+            self.editabletreeview1.insert("", "end", values=[item[0], item[1], self.directionCombo.get(), item[3]])
 
-    def set_direction(self, value):
-        """
-        Set the direction of the direction for the bounding box.
 
-        :param value: Direction of the bounding box, currently takes values "Up", "Down", "Left", and "Right"'
+    def update_direction(self, event):
         """
-        self.direction = value
+
+        :param event:
+        :return:
+        """
+        selected_direction = self.directionCombo.get()
+        self.Direction.set(selected_direction)
+        self.direction = self.directions.get(selected_direction, '')
 
 
 
@@ -258,8 +266,31 @@ class BoundingBoxCreator:
         self.loaded = True if self.loaded is False else True
         # TODO: add button change the text in the statuses
 
-    def deleteSelected(self, value):
-        del self.bounding_boxes[value]
+
+    def deleteSelected(self):
+        """"
+            Unused, issues with mainloop after deletion
+
+            Also,uneeded since the paths must be in order, use undo for delete
+
+            Deletes selected tree item
+        """
+        selected = self.editabletreeview1.selection()
+        if selected:
+            index = self.editabletreeview1.index(selected[-1])
+            # self.editabletreeview1.delete(selected)
+            self.bounding_boxes.pop(index)
+            self.bounding_num -= 1
+            self.bounding_boxes = [[idnum] + box[1:] for idnum, box in enumerate(self.bounding_boxes)]
+            frame_copy = self.draw_frame_with_boxes()
+            cv2.imshow(self.firstFrame, frame_copy)
+            self.populate_tree()
+
+        selected = None
+
+
+
+
 
     def toggle_delete(self):
         """
@@ -366,11 +397,12 @@ class BoundingBoxCreator:
                     bottom_right = (max(self.ix, x), max(self.iy, y))
                     if self.value == 1:
                         self.bounding_boxes.append([self.bounding_num, "straight", self.direction, [top_left, bottom_right]])
+                        print(self.bounding_boxes[-1])
                     else:
                         self.curve = True
                         midpoint = ((self.ix + x) / 2, (self.iy + y) / 2)
                         self.bounding_boxes.append([self.bounding_num, "curved", self.direction, [top_left, bottom_right], midpoint, [(0, 0), (0, 0)]])
-
+                        print(self.bounding_boxes[-1])
                     self.populate_tree()
                     frame_with_boxes = self.draw_frame_with_boxes()
                     self.bounding_num = self.bounding_num + 1
@@ -436,6 +468,7 @@ class BoundingBoxCreator:
     def set_resolution(self, x, y):
         """"
         Returns the resolution of the bounding box interface creator,
+        used to scale the bounding boxes in the droplet tracker
         used to scale the bounding boxes in the droplet tracker
         """
 
