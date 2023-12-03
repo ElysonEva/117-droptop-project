@@ -1,11 +1,9 @@
 import cv2
 from ultralytics import YOLO
-from roboflow import Roboflow
 import supervision as sv
 import sys, os
 import math
-import time
-from bounding_box_interface_to_use import BoundingBoxCreator
+
 
 class Path():
     def __init__(self) -> None:
@@ -24,6 +22,7 @@ class Path():
             self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
         self.segments_in_order[droplet.current_section].add_droplet(droplet)
         print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
+
 class Droplet():
     def __init__(self, id, x: int = None, y:int = None, trajectory: int = 1, current_section: int = 0) -> None:
         '''Initialize Droplet Object'''
@@ -53,7 +52,7 @@ class Droplet():
         direction_x, direction_y = segment.direction
         if isinstance(segment, Straight):
             self.x += (self.trajectory * direction_x)
-            #slope = (segment.top_left[1] - segment.top_right[1])/(segment.top_right[0] - segment.top_left[0]) #ideally most  cases slope is 0
+            # slope = (segment.top_left[1] - segment.top_right[1])/(segment.top_right[0] - segment.top_left[0]) #ideally most  cases slope is 0
             slope = 0 # TODO When Interface is Integrated replace this with above ^^^
             self.y += slope
         else:
@@ -181,12 +180,12 @@ class Curve():
 def load_mac_files():
     '''Loads the proper files for Mac'''
     model = YOLO("best.pt")
+    # TODO add way to pull up video with file explorer maybe have it done in interface
     video_cap = cv2.VideoCapture("droplet_videos/video_data_Rainbow 11-11-22.m4v")
     # video_cap = cv2.VideoCapture("droplet_videos/5_smalldroplets_raw.mp4")
     return model, video_cap
 
 def build_course(bound_list) -> Path:
-    # TODO use boundingBoxList to create the course
     '''This builds the Path object assuming I know the course before hand. Add the segments to the course's queue
     For curves add the start, middle, end points'''
     course = Path()
@@ -198,9 +197,7 @@ def build_course(bound_list) -> Path:
             new_box = Straight((box[3][0]), (box[3][1]), box[2])
             course.add_segment(new_box)
         else:
-            # TODO add a way to make boxes formated so they are dragged from the bottom left
             new_box = Curve((box[3][0]), (box[3][1]), box[2])
-            # TODO redo based on changes to direction in bounding box class
             new_box.add_sme(box[5][0], box[4], box[5][1])
             course.add_segment(new_box)
 
@@ -255,12 +252,6 @@ def label_course(frame, bound_box_list) -> None:
     'TODO: loop through and add visual for bounding boxes '
     for box in bound_box_list:
         cv2.rectangle(frame, box[3][0], box[3][1], (0, 255, 0), 2)
-    # cv2.rectangle(frame, (75, 50), (460, 70), (0, 255, 0), 2) #First Straight
-    # cv2.rectangle(frame, (25, 50), (75, 110), (0, 200, 0), 2) #First Curve
-    # cv2.rectangle(frame, (45, 110), (60, 160), (0, 255, 0), 2) #Second Straight from First Curve to Second Curve # First Vertical
-    # cv2.rectangle(frame, (40, 160), (100, 205), (0, 200, 0), 2) #Second Curve
-    # cv2.rectangle(frame, (100, 180), (530, 205), (0, 255, 0), 2) #Third Straight
-
 def label_curves_s_m_e(frame, bound_box_list) -> None:
     '''Draw the bounding Boxes for the curvers and their Start, Middle, End'''
     'TODO: loop and add bounding boxes '
@@ -268,24 +259,6 @@ def label_curves_s_m_e(frame, bound_box_list) -> None:
         if box[1] == "curved":
             cv2.rectangle(frame, box[3][0], box[3][1], (0, 255, 0), 2)
             give_me_a_small_box(box[4])
-
-    # start1_left, start1_right = give_me_a_small_box((75, 60))
-    # cv2.rectangle(frame, start1_left, start1_right, (0, 0, 200), 2) #First Curve
-    #
-    # start1_m_l, start1_m_r = give_me_a_small_box((60, 80))
-    # cv2.rectangle(frame, start1_m_l, start1_m_r, (0, 0, 200), 2)
-    #
-    # start1_e_l, start1_e_r = give_me_a_small_box((52, 110))
-    # cv2.rectangle(frame, start1_e_l, start1_e_r, (0, 0, 200), 2)
-    #
-    # start2_left, start2_right = give_me_a_small_box((50, 160))
-    # cv2.rectangle(frame, start2_left, start2_right, (0, 0, 200), 2) #First Curve
-    #
-    # start2_m_l, start2_m_r = give_me_a_small_box((70, 190))
-    # cv2.rectangle(frame, start2_m_l, start2_m_r, (0, 0, 200), 2)
-    #
-    # start2_e_l, start2_e_r = give_me_a_small_box((100, 195))
-    # cv2.rectangle(frame, start2_e_l, start2_e_r, (0, 0, 200), 2)
 
 def get_droplets_on_screen(t : int, num_droplets: int, drops:{Droplet}, course) -> int:
     '''Initializes Droplet objects this is assumed I know it before hand T == Frame they appear in'''
@@ -347,11 +320,13 @@ def find_closest_droplet(drops_to_consider: {Droplet}, mid:(int, int), found: se
             closest = distance
     return closest_drop  
 
+
 def box_drops(drops: {Droplet}, frame) -> None:
     '''This boxs the Droplets I know about'''
     for drop in drops:
         left_predict, right_predict = give_me_a_small_box((drop.x, drop.y))
         cv2.rectangle(frame, left_predict, right_predict, (100, 0, 0), 4)
+
 
 def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
     '''This compares the detected droplets vs the actual droplets and then Infers where the missing droplets should be and updates their position that way'''
@@ -359,6 +334,7 @@ def handle_missings(drops: {Droplet}, found: set, map_course: Path) -> None:
     for drop in missing:
         drop.update_position(map_course)
         found.add(drop)
+
 
 def print_path_segments(course: Path, t: int) -> None:
     '''Debug Function that prints T frames and segment the droplets in each segment and shows them updating'''
@@ -439,18 +415,3 @@ def main(bound_box_list):
             if (cv2.waitKey(10) == 27):
                 break
 
-if __name__ == '__main__':
-    '''Start Time and End Time is a timer to measure run time'''
-    # get bounding boxes
-    model, video_cap = load_mac_files()
-    bound_interface = BoundingBoxCreator(video_cap)
-    bound_interface.set_resolution(640, 480) # default
-    bound_box_list = bound_interface.return_bounding()
-    print(bound_box_list)
-
-    start_time = time.perf_counter()
-    main(bound_box_list)
-    # build() #Just a test function to isolate portions
-    end_time = time.perf_counter()
-    execution_time = end_time - start_time
-    print(f"Execution time: {execution_time:.2f} seconds")
