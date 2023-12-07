@@ -51,14 +51,16 @@ Instructions to get the code to start working :)
 ## Usage 
 * This section notes the steps on how to open a video for bounding box creation and processing.
 
-1. Set video
-2. Run python .\bounding_box_interface_to_use.py
-3. Select Open Video file
-4. adding bounding boxes, note rules for bounding boxes
-5. add straight
-6. add curve
-7. process video
-8. done and dusted 
+1. Run the interface
+   ```sh
+   Run python .\bounding_box_interface_to_use.py 
+   ```
+2. Select Open Video file
+6. adding bounding boxes, note rules for bounding boxes
+7. add straight
+8. add curve
+9. process video
+10. done and dusted 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
