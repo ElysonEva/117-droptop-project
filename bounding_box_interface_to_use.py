@@ -38,11 +38,6 @@ class BoundingBoxCreator:
         self.display_x_resolution = 640
         self.display_y_resolution = 480
 
-        # directions
-        # left (-1,0)
-        # right (1, 0)
-        # down (0, -1)
-        # up (0, 1)
         self.directions = {"Up": (0, 0),
                            "Up-Right": (1, 1), "Right": (1, 0), "Down-Right": (1, -1),
                            "Down": (0, -1),
@@ -460,9 +455,31 @@ class BoundingBoxCreator:
         return copy
 
 
+
+
+
 if __name__ == '__main__':
-    model, video_cap = ds_infer_curves_with_interface_integration.load_mac_files()
-    print("INTERFACE STARTING")
-    bound_interface = BoundingBoxCreator(video_cap)
-    print("INTERFACE ClOSED")
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.askopenfilename(filetypes=[("Video files", "*.mp4;*.avi;*.mov;*.mkv;*.m4v")])
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    if not file_path:
+        print("No file selected. Exiting.")
+    else:
+        model, video_cap = ds_infer_curves_with_interface_integration.load_mac_files(file_path)
+        video_cap = cv2.VideoCapture(file_path)
+        print("INTERFACE STARTING")
+        bound_interface = BoundingBoxCreator(video_cap)
+        print("INTERFACE ClOSED")
+    root.destroy()
+
+
+
+    # Open the selected video file
+    # video_cap = cv2.VideoCapture(file_path)
+    # print("INTERFACE STARTING")
+    # bound_interface = BoundingBoxCreator(video_cap)
+    # print("INTERFACE ClOSED")
 

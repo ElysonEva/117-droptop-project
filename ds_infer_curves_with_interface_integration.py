@@ -177,13 +177,14 @@ class Curve():
         return a * (x ** 2) + b * x + c
     
 
-def load_mac_files():
+def load_mac_files(file):
     '''Loads the proper files for Mac'''
     model = YOLO("best.pt")
     # TODO add way to pull up video with file explorer maybe have it done in interface
-    video_cap = cv2.VideoCapture("droplet_videos/video_data_Rainbow 11-11-22.m4v")
+    video_cap = cv2.VideoCapture(file)
     # video_cap = cv2.VideoCapture("droplet_videos/5_smalldroplets_raw.mp4")
     return model, video_cap
+
 
 def build_course(bound_list) -> Path:
     '''This builds the Path object assuming I know the course before hand. Add the segments to the course's queue
