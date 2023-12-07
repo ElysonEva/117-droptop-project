@@ -1,5 +1,5 @@
 <a name="readme-top"></a>
-# Droptop Interface with Yolo V8
+# Droptop Interface with Yolo V8 CVS 
 
 
 
@@ -16,7 +16,7 @@
         <li><a href="#Computer vision system">Installation</a></li>
       </ul>
     </li>
-    <li><a href="">Usage</a></li>
+    <li><a href="#Getting Started">Usage</a></li>
   </ol>
 </details>
 
@@ -26,9 +26,10 @@
 
 # Features
   ## Interface 
-  GUI provides users the ability to load videos and create bounding boxes for the computer vision system. Includes: video loading, bounding box saving/loading, bounding box processing, setting attributes bounding box type (curve or straight) and direction, clearing of bounding boxes, and undo. Provides a section to display all bounding boxes. 
+  * GUI provides users the ability to load videos and create bounding boxes for the computer vision system. Includes: video loading, bounding box saving/loading, bounding box processing, setting attributes bounding box type (curve or straight) and direction, clearing of bounding boxes, and undo. Provides a section to display all bounding boxes. 
+  
   ## Computer vision system 
-  CVS uses YOLO v8 for droplet detection and uses models trained with Roboflow (best.pt) 
+  * CVS uses YOLO v8 for droplet detection and uses models trained with Roboflow (best.pt) 
 
   <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
