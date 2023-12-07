@@ -10,13 +10,9 @@
       <a href="#Description">About The Project</a>
     </li>
     <li>
-      <a href="#Features">Getting Started</a>
-      <ul>
-        <li><a href="#Interface">Prerequisites</a></li>
-        <li><a href="#Computer vision system">Installation</a></li>
-      </ul>
+      <a href="#Features">Features</a>
     </li>
-    <li><a href="#Getting Started">Usage</a></li>
+    <li><a href="#Getting Started">Getting Started</a></li>
   </ol>
 </details>
 
@@ -52,6 +48,20 @@ Instructions to get the code to start working :)
    npm install
    ```
    <p align="right">(<a href="#readme-top">back to top</a>)</p>
+## Usage 
+* This section notes the steps on how to open a video for bounding box creation and processing.
+
+  FIXXXXXXXXXXXXXXXXXXXXXX LATTTTTTTTTER
+1. Set video
+2. Run python .\bounding_box_interface_to_use.py
+3. Select Open Video file
+4. adding bounding boxes, note rules for bounding boxes
+5. add straight
+6. add curve
+7. process video
+8. done and dusted 
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
