@@ -3,28 +3,26 @@
 
 
 
-# Description 
-  Proposed improvement of the original Droptop computer vision system. Adds functionality of the current computer vision system with droplet labeling for droplet reacquisition after loss. Includes basic interface for bounding box manipulation, saving, and loading.   
-
 <details>
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
+      <a href="#Description">About The Project</a>
     </li>
     <li>
-      <a href="#getting-started">Getting Started</a>
+      <a href="#Features">Getting Started</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
+        <li><a href="#Interface">Prerequisites</a></li>
+        <li><a href="#Computer vision system">Installation</a></li>
       </ul>
     </li>
-    <li><a href="#Features">Usage</a></li>
+    <li><a href="">Usage</a></li>
   </ol>
 </details>
+
+# Description 
+  Proposed improvement of the original Droptop computer vision system. Adds functionality of the current computer vision system with droplet labeling for droplet reacquisition after loss. Includes basic interface for bounding box manipulation, saving, and loading.   
+
 
 # Features
   ## Interface 
@@ -33,5 +31,28 @@
   CVS uses YOLO v8 for droplet detection and uses models trained with Roboflow (best.pt) 
 
   <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+  
+# Getting Started 
+Instructions to get the code to start working :) 
+
+## Prerequisites
+* using npm to install the requirements.txt for the project. Need a basic concept of git and python to use. 
+```sh
+  npm install npm@latest -g
+```
+## Installation
+1. Clone the repo
+   ```sh
+   git clone https://github.com/ElysonEva/117-droptop-project.git
+   ```
+2. Install NPM packages (requirements.txt) 
+   ```sh
+   npm install
+   ```
+   <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
 
   
