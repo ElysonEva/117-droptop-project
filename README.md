@@ -5,4 +5,4 @@
 
 # Features
   ## Interface 
-    GUI provides users the ability to load videos and create bounding box for the computer vision system, 
+  GUI provides users the ability to load videos and create bounding box for the computer vision system, 
