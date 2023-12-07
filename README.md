@@ -55,12 +55,13 @@ Instructions to get the code to start working :)
    ```sh
    Run python .\bounding_box_interface_to_use.py 
    ```
-2. Select Open Video file
-6. adding bounding boxes, note rules for bounding boxes
-7. add straight
-8. add curve
-9. process video
-10. done and dusted 
+2. Select Open Video file with File Explorer
+3. Add wanted bounding boxes, note rules for bounding boxes
+   * Add straight by creating the bounding box
+   * Add a curve by creating the bounding box for the corner and selecting the start and end of the curve.
+   * Select the direction of the bounding box.  
+4. Select 'Process Bounding Boxes'
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
