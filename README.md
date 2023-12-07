@@ -51,7 +51,6 @@ Instructions to get the code to start working :)
 ## Usage 
 * This section notes the steps on how to open a video for bounding box creation and processing.
 
-  FIXXXXXXXXXXXXXXXXXXXXXX LATTTTTTTTTER
 1. Set video
 2. Run python .\bounding_box_interface_to_use.py
 3. Select Open Video file
