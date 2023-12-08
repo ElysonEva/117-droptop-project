@@ -475,11 +475,3 @@ if __name__ == '__main__':
         print("INTERFACE ClOSED")
     root.destroy()
 
-
-
-    # Open the selected video file
-    # video_cap = cv2.VideoCapture(file_path)
-    # print("INTERFACE STARTING")
-    # bound_interface = BoundingBoxCreator(video_cap)
-    # print("INTERFACE ClOSED")
-
