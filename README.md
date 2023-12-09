@@ -69,8 +69,7 @@ Each detection is mapped to the existing Droplets and updated to those droplets'
 Green boxes are straight segments, Blue boxes are Curve segments, red dots are points along the curve to calculate the quadratic coefficients a, b, c,
 black boxes are dispensers, purple boxes are ML model's detections (the top left-hand number is ID, the right-hand number is confidence),
 Cyan/Aqua boxes inside the purple boxes are Python Python-initialized droplets to store data.
-1. 
-  Pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
+1. Pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
   ```
 if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
@@ -79,6 +78,28 @@ if __name__ == '__main__':
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time:.2f} seconds")```
+2. The main function initializes variables and runs the core logic
+all_droplets stores every droplet in the course at any given point.
+course is a Path object that stores the segments in order
+```
+class Path():
+    def __init__(self) -> None:
+        self.segments_in_order = []
+    
+    def add_segment(self, new_segment) -> None:
+        '''Adds a segment of the course into the Paths array'''
+        self.segments_in_order.append(new_segment)
+
+    def add_droplet_to_queues(self, droplet) -> None:
+        '''Adds droplets to the corresponding queue in each segment. If the segment isn't last in the list then
+        add it to the correct one and the next one. That way we can infer will it will be and remove it accordingly'''
+        length = len(self.segments_in_order)
+        if length > 1 and droplet.current_section + 1 < length:
+            self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
+        self.segments_in_order[droplet.current_section].add_droplet(droplet)
+        print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])```
+      
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
