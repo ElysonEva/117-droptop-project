@@ -104,7 +104,7 @@ course is a Path object that stores the segments in order. The Path object has a
 Each Segment is either a Straight or a Curve and each one holds a data structure that helps store using the top left corner point and bottom right-hand corner point. 
 Straights are simple only having an add droplet and remove droplet feature with most parameters passed in by the User. 
 
-    ```class Straight():
+    class Straight():
           def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
               self.top_left = point1
               self.bottom_right = point2
@@ -117,7 +117,7 @@ Straights are simple only having an add droplet and remove droplet feature with 
           
           def remove_droplet(self, droplet: Droplet) -> None:
               '''Removes a droplet from this segments queue'''
-              self.queue.remove(droplet)```
+              self.queue.remove(droplet)
               
 Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
 predict y that helps infer the location of the droplet
