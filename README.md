@@ -64,13 +64,21 @@ Instructions to get the code to start working :)
 
 # Algorithm DropShop.py
 ## Summary:
-pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
-from here every frame in the video will now be analyzed with the machine learning (ML) model and given an array of detections. 
+Every frame in the video will now be analyzed with the machine learning (ML) model and given an array of detections. 
 Each detection is mapped to the existing Droplets and updated to those droplets' positions. 
 Green boxes are straight segments, Blue boxes are Curve segments, red dots are points along the curve to calculate the quadratic coefficients a, b, c,
 black boxes are dispensers, purple boxes are ML model's detections (the top left-hand number is ID, the right-hand number is confidence),
-Cyan/Aqua boxes inside the purple boxes are Python Initialized Droplets to store data.
-
+Cyan/Aqua boxes inside the purple boxes are Python Python-initialized droplets to store data.
+1. 
+  Pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
+  ```
+if __name__ == '__main__':
+    '''Start Time and End Time is a timer to measure run time'''
+    start_time = time.perf_counter()
+    main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
+    end_time = time.perf_counter()
+    execution_time = end_time - start_time
+    print(f"Execution time: {execution_time:.2f} seconds")```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
