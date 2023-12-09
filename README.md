@@ -68,7 +68,8 @@ Every frame in the video will now be analyzed with the machine learning (ML) mod
 Each detection is mapped to the existing Droplets and updated to those droplets' positions. 
 Green boxes are straight segments, Blue boxes are Curve segments, red dots are points along the curve to calculate the quadratic coefficients a, b, c,
 black boxes are dispensers, purple boxes are ML model's detections (the top left-hand number is ID, the right-hand number is confidence),
-Cyan/Aqua boxes inside the purple boxes are Python Python-initialized droplets to store data.
+Cyan/Aqua boxes inside the purple boxes are Python Python-initialized droplets to store data. 
+If a detection is missed then predict where it'll be using the fact the Droplet is in a straight or curve traveling in 1 direction
 1. Pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
     ```if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
@@ -80,9 +81,8 @@ Cyan/Aqua boxes inside the purple boxes are Python Python-initialized droplets t
     ```
 2. The main function initializes variables and runs the core logic
 all_droplets stores every droplet in the course at any given point.
-course is a Path object that stores the segments in order
-
-```class Path():
+course is a Path object that stores the segments in order. The Path object has a function to add new segments and add droplets to each nested segment's queue.
+    ```class Path():
     def __init__(self) -> None:
         self.segments_in_order = []
     
@@ -97,9 +97,84 @@ course is a Path object that stores the segments in order
         if length > 1 and droplet.current_section + 1 < length:
             self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
         self.segments_in_order[droplet.current_section].add_droplet(droplet)
-        print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])```
-      
+        print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
+    ```
+Each Segment is either a Straight or a Curve and each one holds a data structure that helps store using the top left corner point and bottom right-hand corner point. 
+Straights are simple only having an add droplet and remove droplet feature with most parameters passed in by the User. 
+    ```class Straight():
+    def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
+        self.top_left = point1
+        self.bottom_right = point2
+        self.direction = direction
+        self.queue = set()
+       
+    def add_droplet(self, droplet: Droplet) -> None:
+        '''Add a droplet to the queue'''
+        self.queue.add(droplet)
+    
+    def remove_droplet(self, droplet: Droplet) -> None:
+        '''Removes a droplet from this segments queue'''
+        self.queue.remove(droplet)
+    ```
+Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
+predict y that helps infer the location of the droplet
+    ```
+class Curve():
+    def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
+        '''Initialize a curve's box and it's direction. Assuming a start, middle, end point are provided.
+        Initialize a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
+        f(x) = ax^2 + bx + c
+        '''
+        self.top_left = point1
+        self.bottom_right = point2
+        self.direction = direction 
+        self.start = None
+        self.mid = None
+        self.end = None
+        self.queue = set()
+        self.quadratic_coef = None #Holds a, b, c coefficients of quadratic formula
 
+    def add_droplet(self, droplet: Droplet) -> None:
+        '''Add a droplet to the queue'''
+        self.queue.add(droplet)
+    
+    def remove_droplet(self, droplet: Droplet) -> None:
+        '''Remove a droplet to the queue'''
+        self.queue.remove(droplet)
+    
+    def add_sme(self, s: (int, int), m: (int, int), e: (int, int)) -> None:
+        '''Adds the start middle end points and gets then uses those points to get the coefficients'''
+        self.start = s
+        self.mid = m
+        self.end = e
+        self.quadratic_coef = self.get_quadratic(s, m, e)
+    
+    def get_quadratic(self, s: (int, int), m: (int, int), e: (int, int)) -> (int, int, int):
+        '''Returns a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
+        f(x) = ax^2 + bx + c '''
+        x_1 = s[0]
+        x_2 = m[0]
+        x_3 = e[0]
+        y_1 = s[1]
+        y_2 = m[1]
+        y_3 = e[1]
+
+        a = y_1/((x_1-x_2)*(x_1-x_3)) + y_2/((x_2-x_1)*(x_2-x_3)) + y_3/((x_3-x_1)*(x_3-x_2))
+
+        b = (-y_1*(x_2+x_3)/((x_1-x_2)*(x_1-x_3))
+            -y_2*(x_1+x_3)/((x_2-x_1)*(x_2-x_3))
+            -y_3*(x_1+x_2)/((x_3-x_1)*(x_3-x_2)))
+
+        c = (y_1*x_2*x_3/((x_1-x_2)*(x_1-x_3))
+            +y_2*x_1*x_3/((x_2-x_1)*(x_2-x_3))
+            +y_3*x_1*x_2/((x_3-x_1)*(x_3-x_2)))
+        return a,b,c
+
+    def predict_y(self, x: int) -> int:
+        '''Given an integer x return the respective y value from the quadratic formula'''
+        a, b, c = self.quadratic_coef
+        return a * (x ** 2) + b * x + c      
+    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
