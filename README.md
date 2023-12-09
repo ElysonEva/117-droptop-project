@@ -70,8 +70,7 @@ Green boxes are straight segments, Blue boxes are Curve segments, red dots are p
 black boxes are dispensers, purple boxes are ML model's detections (the top left-hand number is ID, the right-hand number is confidence),
 Cyan/Aqua boxes inside the purple boxes are Python Python-initialized droplets to store data.
 1. Pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
-  ```
-if __name__ == '__main__':
+```if __name__ == '__main__':
     '''Start Time and End Time is a timer to measure run time'''
     start_time = time.perf_counter()
     main("runs/detect/train10/weights/best.pt", "droplet_videos/video_data_Rainbow 11-11-22.m4v")
@@ -81,8 +80,8 @@ if __name__ == '__main__':
 2. The main function initializes variables and runs the core logic
 all_droplets stores every droplet in the course at any given point.
 course is a Path object that stores the segments in order
-```
-class Path():
+
+```class Path():
     def __init__(self) -> None:
         self.segments_in_order = []
     
