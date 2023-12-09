@@ -123,60 +123,60 @@ Curves are more complex it needs a corresponding start, middle, and endpoint whi
 predict y that helps infer the location of the droplet
 
     class Curve():
-    def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
-        '''Initialize a curve's box and it's direction. Assuming a start, middle, end point are provided.
-        Initialize a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
-        f(x) = ax^2 + bx + c
-        '''
-        self.top_left = point1
-        self.bottom_right = point2
-        self.direction = direction 
-        self.start = None
-        self.mid = None
-        self.end = None
-        self.queue = set()
-        self.quadratic_coef = None #Holds a, b, c coefficients of quadratic formula
-
-    def add_droplet(self, droplet: Droplet) -> None:
-        '''Add a droplet to the queue'''
-        self.queue.add(droplet)
-    
-    def remove_droplet(self, droplet: Droplet) -> None:
-        '''Remove a droplet to the queue'''
-        self.queue.remove(droplet)
-    
-    def add_sme(self, s: (int, int), m: (int, int), e: (int, int)) -> None:
-        '''Adds the start middle end points and gets then uses those points to get the coefficients'''
-        self.start = s
-        self.mid = m
-        self.end = e
-        self.quadratic_coef = self.get_quadratic(s, m, e)
-    
-    def get_quadratic(self, s: (int, int), m: (int, int), e: (int, int)) -> (int, int, int):
-        '''Returns a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
-        f(x) = ax^2 + bx + c '''
-        x_1 = s[0]
-        x_2 = m[0]
-        x_3 = e[0]
-        y_1 = s[1]
-        y_2 = m[1]
-        y_3 = e[1]
-
-        a = y_1/((x_1-x_2)*(x_1-x_3)) + y_2/((x_2-x_1)*(x_2-x_3)) + y_3/((x_3-x_1)*(x_3-x_2))
-
-        b = (-y_1*(x_2+x_3)/((x_1-x_2)*(x_1-x_3))
-            -y_2*(x_1+x_3)/((x_2-x_1)*(x_2-x_3))
-            -y_3*(x_1+x_2)/((x_3-x_1)*(x_3-x_2)))
-
-        c = (y_1*x_2*x_3/((x_1-x_2)*(x_1-x_3))
-            +y_2*x_1*x_3/((x_2-x_1)*(x_2-x_3))
-            +y_3*x_1*x_2/((x_3-x_1)*(x_3-x_2)))
-        return a,b,c
-
-    def predict_y(self, x: int) -> int:
-        '''Given an integer x return the respective y value from the quadratic formula'''
-        a, b, c = self.quadratic_coef
-        return a * (x ** 2) + b * x + c      
+          def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
+              '''Initialize a curve's box and it's direction. Assuming a start, middle, end point are provided.
+              Initialize a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
+              f(x) = ax^2 + bx + c
+              '''
+              self.top_left = point1
+              self.bottom_right = point2
+              self.direction = direction 
+              self.start = None
+              self.mid = None
+              self.end = None
+              self.queue = set()
+              self.quadratic_coef = None #Holds a, b, c coefficients of quadratic formula
+      
+          def add_droplet(self, droplet: Droplet) -> None:
+              '''Add a droplet to the queue'''
+              self.queue.add(droplet)
+          
+          def remove_droplet(self, droplet: Droplet) -> None:
+              '''Remove a droplet to the queue'''
+              self.queue.remove(droplet)
+          
+          def add_sme(self, s: (int, int), m: (int, int), e: (int, int)) -> None:
+              '''Adds the start middle end points and gets then uses those points to get the coefficients'''
+              self.start = s
+              self.mid = m
+              self.end = e
+              self.quadratic_coef = self.get_quadratic(s, m, e)
+          
+          def get_quadratic(self, s: (int, int), m: (int, int), e: (int, int)) -> (int, int, int):
+              '''Returns a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
+              f(x) = ax^2 + bx + c '''
+              x_1 = s[0]
+              x_2 = m[0]
+              x_3 = e[0]
+              y_1 = s[1]
+              y_2 = m[1]
+              y_3 = e[1]
+      
+              a = y_1/((x_1-x_2)*(x_1-x_3)) + y_2/((x_2-x_1)*(x_2-x_3)) + y_3/((x_3-x_1)*(x_3-x_2))
+      
+              b = (-y_1*(x_2+x_3)/((x_1-x_2)*(x_1-x_3))
+                  -y_2*(x_1+x_3)/((x_2-x_1)*(x_2-x_3))
+                  -y_3*(x_1+x_2)/((x_3-x_1)*(x_3-x_2)))
+      
+              c = (y_1*x_2*x_3/((x_1-x_2)*(x_1-x_3))
+                  +y_2*x_1*x_3/((x_2-x_1)*(x_2-x_3))
+                  +y_3*x_1*x_2/((x_3-x_1)*(x_3-x_2)))
+              return a,b,c
+      
+          def predict_y(self, x: int) -> int:
+              '''Given an integer x return the respective y value from the quadratic formula'''
+              a, b, c = self.quadratic_coef
+              return a * (x ** 2) + b * x + c      
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
