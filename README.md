@@ -97,8 +97,7 @@ course is a Path object that stores the segments in order. The Path object has a
               if length > 1 and droplet.current_section + 1 < length:
                   self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
               self.segments_in_order[droplet.current_section].add_droplet(droplet)
-              print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
-    ```
+              print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])```
 Each Segment is either a Straight or a Curve and each one holds a data structure that helps store using the top left corner point and bottom right-hand corner point. 
 Straights are simple only having an add droplet and remove droplet feature with most parameters passed in by the User. 
     ```class Straight():
