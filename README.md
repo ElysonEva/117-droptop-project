@@ -121,7 +121,8 @@ Straights are simple only having an add droplet and remove droplet feature with 
               
 Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
 predict y that helps infer the location of the droplet
-    ```class Curve():
+
+    class Curve():
     def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
         '''Initialize a curve's box and it's direction. Assuming a start, middle, end point are provided.
         Initialize a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
@@ -176,7 +177,6 @@ predict y that helps infer the location of the droplet
         '''Given an integer x return the respective y value from the quadratic formula'''
         a, b, c = self.quadratic_coef
         return a * (x ** 2) + b * x + c      
-    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
