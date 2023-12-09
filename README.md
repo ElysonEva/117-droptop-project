@@ -101,7 +101,7 @@ course is a Path object that stores the segments in order. The Path object has a
               print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
     ```
     
-Each Segment is either a Straight or a Curve and each one holds a data structure that helps store using the top left corner point and bottom right-hand corner point. 
+3. Each Segment is either a Straight or a Curve and each one holds a data structure that helps store using the top left corner point and bottom right-hand corner point. 
 Straights are simple only having an add droplet and remove droplet feature with most parameters passed in by the User. 
 
     class Straight():
@@ -119,7 +119,7 @@ Straights are simple only having an add droplet and remove droplet feature with 
               '''Removes a droplet from this segments queue'''
               self.queue.remove(droplet)
               
-Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
+4. Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
 predict y that helps infer the location of the droplet
 
     class Curve():
@@ -176,7 +176,91 @@ predict y that helps infer the location of the droplet
           def predict_y(self, x: int) -> int:
               '''Given an integer x return the respective y value from the quadratic formula'''
               a, b, c = self.quadratic_coef
-              return a * (x ** 2) + b * x + c      
+              return a * (x ** 2) + b * x + c
+
+5. Every Python object droplet holds its id, (x, y), trajectory, what section it's currently in, the last time it was seen, and a different speed for curves.
+Its primary function is
+### update_position which updates its position this is the logic in the case it's not detected it updates depending on where it was in the curve.
+### update_section When the droplet is detected outside of the section it's currently in move the data over to the next segment and the next segment.
+For example, if a droplet was in S0 and saw in S1 add it to S1 and S2. The design choice for this was to allow for a seamless transition in data since there was too much
+variability in accuracy this provided a generally confident way that the Droplet would at least be seen in S1 or S2 and update. This makes the algorithm heavily reliant on the model
+being accurate to a certain degree.
+#### update_last_seen which dynamically updates the speed of the droplet using last seen to calculate it
+
+  class Droplet():
+      def __init__(self, id, x: int = None, y:int = None, trajectory: int = 1, current_section: int = 0) -> None:
+          '''Initialize Droplet Object'''
+          self.id = id
+          self.x = x
+          self.y = y
+          self.trajectory = trajectory
+          self.current_section = current_section
+          self.last_detection = None
+          self.curve_speed = trajectory
+  
+      def update_position(self, course: Path, droplet) -> (int, int):
+          segment = course.segments_in_order[self.current_section]
+          direction_x, direction_y = segment.direction
+          if isinstance(segment, Straight):
+  
+              # self.x += (self.trajectory * direction_x)
+              # #slope = (segment.top_left[1] - segment.top_right[1])/(segment.top_left[0] - segment.top_right[0]) #ideally most  cases slope is 0
+              # slope = 0 
+              # self.y += slope
+              if direction_x and not direction_y:
+                  self.x += (self.trajectory * direction_x)
+              else:
+                  self.y += (self.trajectory * direction_y)
+          else:
+              try:
+                  try:
+                      self.x += (self.curve_speed * direction_x)
+                  except AttributeError:
+                      print("Occured o nself.x")
+                  self.y = segment.predict_y(self.x)
+              except AttributeError:
+                  print("Occurred here")
+          self.update_section(course, droplet)
+          return (self.x, self.y)
+      
+      def update_section(self, course: Path, droplet) -> None:
+          segment = course.segments_in_order[self.current_section]
+          left, right, top, bot = segment.top_left[0], segment.bottom_right[0], segment.top_left[1], segment.bottom_right[1]
+          if self.x < left or self.x > right or self.y < top or self.y > bot:
+              if self.current_section < len(course.segments_in_order):
+  
+                  #Error Probably Occurring Here
+                  course.segments_in_order[self.current_section].remove_droplet(droplet)
+                  self.current_section += 1
+                  course.segments_in_order[self.current_section].add_droplet(droplet)
+                  if self.current_section + 1 < len(course.segments_in_order):
+                      course.segments_in_order[self.current_section + 1].add_droplet(droplet)
+      
+      def update_last_seen(self, mid : (int, int), t : int, x_y_map: {(int, int): Path}, speed_threshold : int) -> None:
+          self.x = mid[0]
+          self.y = mid[1]
+  
+          if not self.last_detection:
+              self.last_detection = (mid, t)
+              return
+          else:
+              if isinstance(x_y_map[mid], Straight):
+                  last_x, curr_x, last_t = self.last_detection[0][0], mid[0], self.last_detection[1]
+                  if t != last_t: #This line prevents Zero Division Error
+                      new_trajectory =  max((last_x - curr_x), (curr_x - last_x))//max((last_t - t), (t - last_t))
+                      if new_trajectory and new_trajectory <= speed_threshold:
+                          self.trajectory = new_trajectory
+              else:
+                  current_curve = x_y_map[mid]
+                  middle_curve_x = current_curve.mid[0]
+                  start_x, end_x = current_curve.start[0], current_curve.end[0]
+                  total_length = abs((start_x - end_x))
+                  proximity_to_center = abs(middle_curve_x - self.x)
+                  if proximity_to_center/total_length * self.curve_speed >= 0.3: 
+                      self.curve_speed *= proximity_to_center/total_length 
+              self.last_detection = (mid, t)
+
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
