@@ -63,6 +63,14 @@ Instructions to get the code to start working :)
 4. Select 'Process Bounding Boxes'
 
 # Algorithm DropShop.py
+## Summary:
+pass in weights_path which is a file of weights trained with YoloV8 and a video path to main() 
+from here every frame in the video will now be analyzed with the machine learning (ML) model and given an array of detections. 
+Each detection is mapped to the existing Droplets and updated to those droplets' positions. 
+Green boxes are straight segments, Blue boxes are Curve segments, red dots are points along the curve to calculate the quadratic coefficients a, b, c,
+black boxes are dispensers, purple boxes are ML model's detections (the top left-hand number is ID, the right-hand number is confidence),
+Cyan/Aqua boxes inside the purple boxes are Python Initialized Droplets to store data.
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
