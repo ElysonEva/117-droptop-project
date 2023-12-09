@@ -117,8 +117,8 @@ Straights are simple only having an add droplet and remove droplet feature with 
           
           def remove_droplet(self, droplet: Droplet) -> None:
               '''Removes a droplet from this segments queue'''
-              self.queue.remove(droplet)
-    ```
+              self.queue.remove(droplet)```
+              
 Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
 predict y that helps infer the location of the droplet
     ```class Curve():
