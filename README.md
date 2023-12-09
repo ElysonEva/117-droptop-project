@@ -83,43 +83,42 @@ If a detection is missed then predict where it'll be using the fact the Droplet 
 all_droplets stores every droplet in the course at any given point.
 course is a Path object that stores the segments in order. The Path object has a function to add new segments and add droplets to each nested segment's queue.
     ```class Path():
-    def __init__(self) -> None:
-        self.segments_in_order = []
-    
-    def add_segment(self, new_segment) -> None:
-        '''Adds a segment of the course into the Paths array'''
-        self.segments_in_order.append(new_segment)
-
-    def add_droplet_to_queues(self, droplet) -> None:
-        '''Adds droplets to the corresponding queue in each segment. If the segment isn't last in the list then
-        add it to the correct one and the next one. That way we can infer will it will be and remove it accordingly'''
-        length = len(self.segments_in_order)
-        if length > 1 and droplet.current_section + 1 < length:
-            self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
-        self.segments_in_order[droplet.current_section].add_droplet(droplet)
-        print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
+          def __init__(self) -> None:
+              self.segments_in_order = []
+          
+          def add_segment(self, new_segment) -> None:
+              '''Adds a segment of the course into the Paths array'''
+              self.segments_in_order.append(new_segment)
+      
+          def add_droplet_to_queues(self, droplet) -> None:
+              '''Adds droplets to the corresponding queue in each segment. If the segment isn't last in the list then
+              add it to the correct one and the next one. That way we can infer will it will be and remove it accordingly'''
+              length = len(self.segments_in_order)
+              if length > 1 and droplet.current_section + 1 < length:
+                  self.segments_in_order[droplet.current_section + 1].add_droplet(droplet)
+              self.segments_in_order[droplet.current_section].add_droplet(droplet)
+              print([drop.id for drop in self.segments_in_order[droplet.current_section].queue])
     ```
 Each Segment is either a Straight or a Curve and each one holds a data structure that helps store using the top left corner point and bottom right-hand corner point. 
 Straights are simple only having an add droplet and remove droplet feature with most parameters passed in by the User. 
     ```class Straight():
-    def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
-        self.top_left = point1
-        self.bottom_right = point2
-        self.direction = direction
-        self.queue = set()
-       
-    def add_droplet(self, droplet: Droplet) -> None:
-        '''Add a droplet to the queue'''
-        self.queue.add(droplet)
-    
-    def remove_droplet(self, droplet: Droplet) -> None:
-        '''Removes a droplet from this segments queue'''
-        self.queue.remove(droplet)
+          def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
+              self.top_left = point1
+              self.bottom_right = point2
+              self.direction = direction
+              self.queue = set()
+             
+          def add_droplet(self, droplet: Droplet) -> None:
+              '''Add a droplet to the queue'''
+              self.queue.add(droplet)
+          
+          def remove_droplet(self, droplet: Droplet) -> None:
+              '''Removes a droplet from this segments queue'''
+              self.queue.remove(droplet)
     ```
 Curves are more complex it needs a corresponding start, middle, and endpoint which calls a quadratic function to solve for a, b, and c in ax^2 + bx + c and a function
 predict y that helps infer the location of the droplet
-    ```
-class Curve():
+    ```class Curve():
     def __init__(self, point1: (int, int), point2: (int, int), direction: int) -> None:
         '''Initialize a curve's box and it's direction. Assuming a start, middle, end point are provided.
         Initialize a tuple that holds the coefficients to a quadratic formula (a, b, c) for the respective
