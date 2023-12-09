@@ -49,18 +49,27 @@ Instructions to get the code to start working :)
    ```
    <p align="right">(<a href="#readme-top">back to top</a>)</p>
 ## Usage 
-* This section notes the steps on how to open a video for bounding box creation and processing.
+* This section notes the steps to open a video for bounding box creation and processing. Also includes other features of the application. 
 
 1. Run the interface
    ```sh
    Run python .\bounding_box_interface_to_use.py 
    ```
-2. Select Open Video file with File Explorer
-3. Add wanted bounding boxes, note rules for bounding boxes
-   * Add straight by creating the bounding box
-   * Add a curve by creating the bounding box for the corner and selecting the start and end of the curve.
-   * Select the direction of the bounding box.  
-4. Select 'Process Bounding Boxes'
+2. File explorer should open, and select the wanted video file to add bounding boxes.  
+4. Select 'Open Video file' in the top menu to open the first frame of the video
+5. Add wanted bounding boxes, note rules for bounding boxes
+   * Add straight by selecting the 'rectangle' option and box direction, and create the bounding box by dragging across the screen.
+   * Add a curve by selecting the 'curve' option and box direction, and create the bounding box by dragging across the screen. Select the start and drag to the end of the curve.
+6. Select 'Process Bounding Boxes' to display the video with bounding boxes in a separate window.
+* Note there can be no interaction with the bounding box interface as long as this window is broken
+* To EXIT the bounding box window, press ESC with the window selected. 
+
+Other features
+* Undo button: Undo the last bounding box
+* Clear button: Clears all of the bounding boxes
+* Save bounding boxes: Save the current bounding boxes to an empty JSON file (create an empty file with .json extension first)
+* Load bounding boxes: Opens the file explorer, and select a VALID JSON file to open and load the bounding boxes. 
+
 
 # Algorithm DropShop.py
 ## Summary:
